@@ -4,7 +4,7 @@
 
 **[Search the catalogue](https://unexpear.github.io/magpie/)**
 
-Magpie indexes metadata from **OpenGameArt, game-icons.net, ambientCG, Poly Haven and Kenney**. Search runs in your browser against a static catalogue. Asset downloads stay on the original sites; previews are loaded from their sources.
+Magpie indexes metadata from **OpenGameArt, game-icons.net, ambientCG, Poly Haven and Kenney**. Search runs in your browser against a static catalogue. Asset downloads stay on the original sites; previews appear only for sources covered by the publication policy.
 
 The current bundled catalogue contains **19,359 assets**. Source observations date from August 2026; the site shows observation and crawl dates separately from export generation time.
 
@@ -13,6 +13,7 @@ The current bundled catalogue contains **19,359 assets**. Source observations da
 - Search by title, tags, author and source; narrow by type, style and licence.
 - Use a conservative commercial filter or a CC0 filter, then inspect the exact source terms. Attribution, ShareAlike and other obligations are shown explicitly.
 - Collect assets into a credits list and download `CREDITS.md`.
+- Save full attribution notices, creator corrections, modification notes and source-review evidence with each project asset.
 - Back up and import projects as JSON, including saved metadata and revision history.
 - Review changes to saved authors or licences without silently overwriting your original record.
 - See source freshness, incomplete crawls and missing metadata.
@@ -21,10 +22,11 @@ Magpie reports indexed information; a filter is not a substitute for checking th
 
 ## Try the browser
 
-Python 3 is enough to serve the included catalogue locally:
+Node and Python 3 can stage and serve the included catalogue locally:
 
 ```powershell
-python -m http.server 8231 --bind 127.0.0.1 --directory crawl/web
+node crawl/publish.cjs
+python -m http.server 8231 --bind 127.0.0.1 --directory crawl/build/site
 ```
 
 Open **http://127.0.0.1:8231**. No account, API key, npm installation or search server is required. Browser storage keeps your credits between visits; use **Back up project** to keep an independent copy.
@@ -49,7 +51,7 @@ The [background runner](crawl/runner/README.md) rotates creator enrichment, sour
 
 ## Verification
 
-The current changes have passed **40 Python regression cases**, C policy/accounting checks, and **11 isolated browser scenarios** on Windows/Edge. Tests use temporary databases and local fixtures, not live asset crawls. Linux runtime behavior has not been verified in this round.
+Verification covers Python regressions, C policy/accounting checks, publication exclusions and isolated browser scenarios. Tests use temporary databases and local fixtures, not live asset crawls. Pages CI also runs the staged site's browser suite on Linux/Chromium.
 
 ```powershell
 python -X utf8 -B crawl/tests/run.py

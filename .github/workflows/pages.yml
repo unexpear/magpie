@@ -34,13 +34,18 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
         working-directory: crawl
+      - name: Stage catalogue with source policy and exclusions
+        run: npm run build:site
+        working-directory: crawl
       - name: Validate catalogue and browser flows
         run: npm test
         working-directory: crawl
+        env:
+          MAGPIE_TEST_SITE: build/site
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: crawl/web
+          path: crawl/build/site
       - name: Publish
         id: deployment
         uses: actions/deploy-pages@v5

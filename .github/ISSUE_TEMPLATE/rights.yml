@@ -1,0 +1,31 @@
+name: Asset rights or metadata correction
+description: Request a creator/licence correction or publication removal.
+title: "Asset correction: "
+body:
+  - type: markdown
+    attributes:
+      value: "This issue is public. Include public source links only; do not upload private identity documents, contracts, addresses or credentials."
+  - type: input
+    id: asset
+    attributes:
+      label: Asset or original source URL
+    validations:
+      required: true
+  - type: dropdown
+    id: action
+    attributes:
+      label: Requested action
+      options:
+        - Correct creator or attribution
+        - Correct licence information
+        - Remove from the published catalogue
+        - Other rights concern
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Correction and supporting public references
+      description: Explain the issue and link to the source or rights information. If requesting removal as a rights holder, describe your relationship to the asset.
+    validations:
+      required: true

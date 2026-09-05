@@ -36,12 +36,24 @@
       if (!Number.isFinite(data.stats[key])) throw new Error("Invalid index statistics");
     return {...data,assets};
   }
+  function record(value){
+    const a=asset(value);
+    for(const key of ["credit_author","credit_notice","modifications","evidence_url"]){
+      if(value[key]!=null && (typeof value[key]!=="string" || value[key].length>10000)) throw new Error("Invalid project note");
+      a[key]=value[key]||"";
+    }
+    if(a.evidence_url && !http(a.evidence_url)) throw new Error("Evidence must be an HTTP(S) URL");
+    for(const key of ["saved_at","reviewed_at"]){
+      if(value[key]!=null && (!Number.isFinite(value[key]) || value[key]<0 || value[key]>8640000000000000)) throw new Error("Invalid save date");
+      a[key]=value[key]||0;
+    }
+    return a;
+  }
   function saved(value){
-    const a = asset(value);
-    if (value.saved_at != null && !Number.isFinite(value.saved_at)) throw new Error("Invalid save date");
-    a.saved_at = value.saved_at || 0;
-    a.history = (value.history || []).map(h => ({...asset(h),saved_at:Number.isFinite(h.saved_at)?h.saved_at:0}));
-    if (a.history.length>100) throw new Error("Too many revisions");
+    const a=record(value);
+    if(value.history!=null && !Array.isArray(value.history)) throw new Error("Invalid revision history");
+    if((value.history||[]).length>100) throw new Error("Too many revisions");
+    a.history=(value.history||[]).map(record);
     return a;
   }
   function readProject(text){
@@ -58,24 +70,44 @@
     return changedFields.filter(key => (old[key]||"") !== (current[key]||""));
   }
   function accept(old, current){
-    return {...asset(current),saved_at:Date.now(),history:[...(old.history||[]),{...asset(old),saved_at:old.saved_at||0}]};
+    return {...record(old),...asset(current),reviewed_at:0,saved_at:Date.now(),history:[...(old.history||[]),record(old)]};
   }
   function obligations(a){
     switch(a.l){
       case "cc0": return "CC0 dedication; no attribution requirement. Check the source for other rights.";
-      case "cc_by": return "Attribution: credit the creator, link the licence, and indicate changes. Check the linked licence version.";
-      case "cc_by_sa": return "Attribution and ShareAlike: credit, link the licence, indicate changes, and share adaptations under the required compatible licence. Check the linked version.";
+      case "cc_by": return "Attribution: credit the creator, link the licence, and indicate changes, and retain supplied notices. Do not add restrictions or technological measures that prevent exercising the licensed rights. Check the linked licence version.";
+      case "cc_by_sa": return "Attribution and ShareAlike: credit, link the licence, indicate changes, and share adaptations under the required compatible licence. Retain supplied notices and do not add restrictions or technological measures that prevent exercising the licensed rights. Check the linked version.";
       case "oga_by": return "Attribution required. Follow the linked OGA-BY terms, including any attribution instructions on the source page.";
       case "gpl": return "Commercial use is permitted by GPL, with copyleft and source-distribution obligations where applicable. Review the exact licence and how the asset is used.";
       case "personal_only": return "Personal use only; commercial permission has not been established.";
       default: return "Terms are not established here. Review the source and its exact licence before use.";
     }
   }
+  function previewAllowed(a){
+    if(!a.th) return false;
+    let url; try { url=new URL(a.th); } catch { return false; }
+    if(url.protocol!=="https:") return false;
+    if(a.s==="ambientcg") return url.hostname==="acg-media.struffelproductions.com";
+    // API-supplied asset thumbnails only; website example/user renders are excluded.
+    if(a.s==="polyhaven") return url.hostname==="cdn.polyhaven.com" && url.pathname.startsWith("/asset_img/thumbs/");
+    if(a.s==="gameicons") return url.hostname==="cdn.jsdelivr.net" && url.pathname.startsWith("/gh/game-icons/icons@") &&
+      (a.l==="cc0" || (a.l==="cc_by" && !!a.a && !!a.lu));
+    return false;
+  }
+  function creditIssues(a){
+    const issues=[];
+    if(a.l!=="cc0" && !(a.credit_author||a.a)) issues.push("creator missing");
+    if(!a.lu) issues.push("licence link missing");
+    if(["unknown","store_eula","personal_only"].includes(a.l)) issues.push("usage terms need review");
+    if(!a.reviewed_at) issues.push("source instructions not reviewed");
+    if(a.l!=="cc0" && !a.modifications) issues.push("changes not recorded");
+    return issues;
+  }
   function prepare(a){
     return {...a,_h:(a.t+" "+(a.tg||"")+" "+(a.tga||"")+" "+(a.a||"")+" "+a.s).toLowerCase(),
       _t:new Set([...(a.tg||"").split(","),...(a.tga||"").split(",")].filter(Boolean))};
   }
-  const api={asset,validateIndex,readProject,project,differences,accept,obligations,prepare};
+  const api={asset,validateIndex,readProject,project,differences,accept,obligations,prepare,previewAllowed,creditIssues,saved};
   if(typeof module!=="undefined") module.exports=api;
   else root.Magpie=api;
 })(globalThis);

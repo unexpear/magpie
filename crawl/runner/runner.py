@@ -134,9 +134,9 @@ def stats():
                        if time.time()-health.get(source,(0,0,0))[1]>=7*86400
                        and time.time()-health.get(source,(0,0,0))[0]>=86400]
             due = db.execute("""SELECT COUNT(*) FROM assets
-                WHERE last_checked IS NULL OR last_checked < ? - CASE
+                WHERE source <> 'polyhaven' AND (last_checked IS NULL OR last_checked < ? - CASE
                 WHEN http_status IN (404,410) THEN 604800
-                WHEN http_status BETWEEN 200 AND 299 THEN 2592000 ELSE 86400 END
+                WHEN http_status BETWEEN 200 AND 299 THEN 2592000 ELSE 86400 END)
                 """, (int(time.time()),)).fetchone()[0]
             today = now().date()
             monday = today - dt.timedelta(days=today.weekday())

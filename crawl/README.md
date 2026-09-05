@@ -114,11 +114,10 @@ styling one.
   anywhere, and they used to render identically.
 - A thumbnail that 404s degrades to "preview unavailable" rather than a broken
   image icon.
-- **`referrerpolicy="no-referrer"` on every thumbnail.** Kenney's CDN serves a
-  plain request happily but returns nothing to a browser sending a cross-origin
-  `Referer` — so every Kenney preview was silently blank, and no `onerror` fired,
-  so the failure was invisible to DOM tests. It also stops telling each source
-  what page someone is browsing.
+- **Preview publication follows the [source policy](../sources.md).** OpenGameArt
+  and Kenney previews are withheld; an asset's download licence does not automatically
+  cover its website images. Permitted previews use `referrerpolicy="no-referrer"`
+  to avoid sending the current page URL to image hosts.
 - **Use the source's own sized variant, not its full-size art.** Kenney's pack
   pages only expose full previews (19–192 KB, ~5 MB for one screen); its *listing*
   pages reference `-400x` variants, halving that to ~57 KB each. The suffix cannot

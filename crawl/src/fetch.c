@@ -93,6 +93,10 @@ static int request(fetcher *f, const char *url, int head, int policy,
     while(redirects<=5) {
         char host[256],etag[256]="",lastmod[128]=""; http_resp r; int gap=interval, not_modified=0;
         if(stop_requested() || url_host(current,host,sizeof host)) break;
+        /* Website terms prohibit scraping without permission; use the separate API. */
+        if(str_ieq(host,"polyhaven.com") || str_ieq(host,"www.polyhaven.com")) {
+            fprintf(stderr,"  source terms: use api.polyhaven.com, not website scraping\n"); break;
+        }
         if(str_ieq(host,"opengameart.org") && gap<10000) gap=10000;
         if(policy && policy_check(f,current,&gap)) break;
         if(!head) store_cache_get(f->st,current,etag,sizeof etag,lastmod,sizeof lastmod,NULL);

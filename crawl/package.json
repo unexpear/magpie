@@ -1,6 +1,11 @@
 {
   "name": "magpie-browser-checks",
   "private": true,
-  "scripts": { "test": "node tests/browser.cjs" },
-  "devDependencies": { "playwright": "1.62.1" }
+  "scripts": {
+    "test": "node tests/browser.cjs",
+    "build:site": "node publish.cjs"
+  },
+  "devDependencies": {
+    "playwright": "1.62.1"
+  }
 }

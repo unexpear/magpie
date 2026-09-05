@@ -685,6 +685,7 @@ int store_list_unchecked(store *s, const char *source, int limit,
         " last_checked < CAST(strftime('%s','now') AS INTEGER) - CASE"
         " WHEN http_status IN (404,410) THEN 604800"
         " WHEN http_status BETWEEN 200 AND 299 THEN 2592000 ELSE 86400 END))"
+        "   AND source <> 'polyhaven'"
         "   AND (?1 = '' OR source = ?1)"
         " ORDER BY COALESCE(last_checked,0), source, id LIMIT ?2",
         source, limit, cb, ud);

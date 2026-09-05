@@ -250,6 +250,7 @@ dialog::backdrop{background:rgba(0,0,0,.55)}
 .dlg-head h3{margin:0;font-size:15px}
 .dlg-body{padding:15px 17px}
 .dlg-body p{margin:0 0 11px;color:var(--dim);font-size:13px}
+#crediteditor input:not([type="checkbox"]){padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:inherit;font:inherit;margin-bottom:6px}
 textarea{
   width:100%;height:min(290px,42vh);background:var(--bg);color:var(--fg);
   border:1px solid var(--line);border-radius:8px;padding:11px;
@@ -366,6 +367,8 @@ textarea{
 
 <footer style="padding:20px 20px 90px;color:var(--dim);font-size:12px">
   Magpie indexes metadata and links to the original asset sites. Review source terms before using an asset.
+  <a href="rights.html">Sources, rights & corrections</a> ·
+  Powered by <a href="https://polyhaven.com" target="_blank" rel="noopener">Poly Haven</a> and the other listed sources.
   <a href="https://github.com/unexpear/magpie" target="_blank" rel="noopener">Source code</a> ·
   <a href="https://github.com/unexpear/magpie/issues" target="_blank" rel="noopener">Report a problem</a>
 </footer>
@@ -403,6 +406,18 @@ textarea{
   <div class="dlg-body">
     <p id="dlgnote"></p>
     <div id="creditchanges"></div>
+    <details id="crediteditor" style="margin:16px 0">
+      <summary>Source instructions and project notes</summary>
+      <p>Copy the creator and full attribution notice from the source. Record what you changed; use “Unmodified” if appropriate. These notes stay in your browser and project backups.</p>
+      <label for="creditasset">Saved asset</label><select id="creditasset" style="width:100%"></select>
+      <label for="creditauthor">Creator to credit (leave blank to use the indexed name)</label><input id="creditauthor" style="width:100%" maxlength="10000">
+      <label for="creditnotice">Copyright / attribution notice from the source</label><textarea id="creditnotice" style="height:90px" maxlength="10000"></textarea>
+      <label for="creditmods">Changes made, or “Unmodified”</label><input id="creditmods" style="width:100%" maxlength="10000">
+      <label for="creditevidence">Source or permission evidence URL</label><input id="creditevidence" type="url" style="width:100%" maxlength="10000">
+      <label><input id="creditreviewed" type="checkbox"> I checked the source licence and attribution instructions for this saved record</label>
+      <p id="creditreviewstatus"></p><button class="btn" id="creditsavenotes">Save project notes</button>
+      <span id="creditnotesstatus" role="status"></span>
+    </details>
     <label class="sr" for="credits">Credits text</label>
     <textarea id="credits" readonly spellcheck="false"></textarea>
   </div>
@@ -486,6 +501,8 @@ function boot(){
 }
 
 function wire(){
+  $("#creditasset").addEventListener("change",loadCreditNotes);
+  $("#creditsavenotes").addEventListener("click",saveCreditNotes);
   $("#projectexport").addEventListener("click",()=>downloadFile(Magpie.project(basket.values()),"magpie-project.json","application/json"));
   $("#projectimport").addEventListener("click",()=>$("#projectfile").click());
   $("#projectfile").addEventListener("change",async e=>{
@@ -707,10 +724,10 @@ function thumbHTML(a){
   // never actually ship.
   if (a.st === "pixel") cls.push("pixel");
 
-  if (!a.th)
+  if (!Magpie.previewAllowed(a))
     return `<div class="thumb none"><span class="glyph">${
       esc(GLYPH[a.ty] || "◦")}</span>${esc(a.ty === "audio" || a.ty === "music"
-        ? "listen on source" : "no preview")}</div>`;
+        ? "listen on source" : a.th || ["opengameart","kenney"].includes(a.s) ? "preview on source" : "no preview")}</div>`;
 
   /* referrerpolicy=no-referrer: some sources reject cross-origin image
      requests that carry a Referer (Kenney's CDN serves 200 to a plain fetch
@@ -730,7 +747,7 @@ function card(a){
              : '<span class="b bad">review commercial terms</span>');
   b.push(a.n ? '<span class="b ok">no credit</span>'
              : '<span class="b warn">credit required</span>');
-  b.push(`<span class="b">${esc(licName(a.l))}</span>`);
+  b.push(a.lu ? `<a class="b" href="${esc(a.lu)}" target="_blank" rel="noopener">${esc(licName(a.l))}</a>` : `<span class="b">${esc(licName(a.l))}</span>`);
   if(a.l==="cc_by_sa") b.push('<span class="b warn">ShareAlike</span>');
   if(a.l==="gpl") b.push('<span class="b warn">copyleft terms</span>');
   if (a.ty && a.ty !== "unclassifiable") b.push(`<span class="b">${esc(a.ty)}</span>`);
@@ -1107,7 +1124,7 @@ function renderTray(){
   $("#tray").classList.toggle("on", n > 0);
   if (!n) return;
   const needList = [...basket.values()].filter(a => !a.n);
-  const noName = needList.filter(a => !a.a).length;
+  const noName = needList.filter(a => !(a.credit_author||a.a)).length;
   $("#traycount").textContent = `${n} asset${n===1?"":"s"} in credits`;
   $("#traysub").textContent = !needList.length
     ? "none require attribution — CC0 throughout"
@@ -1126,22 +1143,23 @@ function creditsText(){
   const L = [];
 
   L.push("# Credits", "");
-  L.push("Assets used in this project, gathered with Magpie.", "");
+  L.push("Assets used in this project, gathered with Magpie.", "", "Draft credits: review the exact source licences and supplied notices before release.", "");
 
   if (need.length){
-    const noName = need.filter(a => !a.a);
+    const noName = need.filter(a => !(a.credit_author||a.a));
     L.push("## Required attribution", "");
-    L.push("These licences require credit. Keep this section in the shipped build.", "");
+    L.push("Review the applicable credit and notice requirements before shipping.", "");
     if (noName.length)
       L.push(`> ${noName.length} entr${noName.length===1?"y is":"ies are"} marked ` +
              "**AUTHOR UNKNOWN**. Magpie has not read those asset pages yet, and an " +
              "attribution line with no name does not satisfy the licence. Open each " +
              "link and fill in the creator before you ship.", "");
     for (const a of need){
-      L.push(`- **${a.t}** by ${a.a || "**AUTHOR UNKNOWN — open the link and fill this in**"} — ${licName(a.l)}`);
+      L.push(`- **${a.t}** by ${a.credit_author || a.a || "**AUTHOR UNKNOWN — open the link and fill this in**"} — ${licName(a.l)}`);
       L.push(`  - ${a.u}`);
       if (a.lu) L.push(`  - Licence: ${a.lu}`);
       L.push(`  - Terms: ${Magpie.obligations(a)}`);
+      L.push(...creditNoteLines(a));
       if(Magpie.differences(a,currentAsset(a)).length) L.push("  - Saved metadata differs from the current index; review this record.");
     }
     L.push("");
@@ -1150,8 +1168,9 @@ function creditsText(){
     L.push("## Public domain (CC0)", "");
     L.push("No attribution required. Listed as a courtesy and for your own records.", "");
     for (const a of free){
-      L.push(`- **${a.t}**${a.a ? ` by ${a.a}` : ""} — ${licName(a.l)}`);
+      L.push(`- **${a.t}**${a.credit_author || a.a ? ` by ${a.credit_author||a.a}` : ""} — ${licName(a.l)}`);
       L.push(`  - ${a.u}`);
+      L.push(...creditNoteLines(a));
     }
     L.push("");
   }
@@ -1159,7 +1178,7 @@ function creditsText(){
   const risky = items.filter(a => !a.c);
   if (risky.length){
     L.push("## ⚠ Check before shipping", "");
-    L.push("Magpie did not clear these for commercial use. Verify on the source page.", "");
+    L.push("These records are outside Magpie’s conservative commercial filter. Review the exact terms and compatibility with your project.", "");
     for (const a of risky)
       L.push(`- **${a.t}** — ${licName(a.l)} — ${a.u}`);
     L.push("");
@@ -1196,19 +1215,58 @@ function renderCreditChanges(){
   }));
 }
 
+function creditNoteLines(a){
+  const lines=[];
+  if(a.s==="gameicons" && (a.credit_author||a.a)) lines.push(`  - Icons made by ${a.credit_author||a.a}. Available on https://game-icons.net`);
+  if(a.credit_notice) lines.push("  - Source attribution notice:",...a.credit_notice.split(/\r?\n/).map(line=>"    > "+line.replace(/</g,"&lt;").replace(/>/g,"&gt;")));
+  if(a.modifications) lines.push(`  - Changes: ${a.modifications}`);
+  if(a.evidence_url) lines.push(`  - Evidence recorded by user: ${a.evidence_url}`);
+  if(a.reviewed_at) lines.push(`  - Source instructions checked by user: ${new Date(a.reviewed_at).toISOString().slice(0,10)}`);
+  const issues=Magpie.creditIssues(a); if(issues.length) lines.push(`  - Review needed: ${issues.join("; ")}`);
+  return lines;
+}
+function populateCreditEditor(){
+  const selected=$("#creditasset").value;
+  $("#creditasset").innerHTML=[...basket.values()].map(a=>`<option value="${esc(a.u)}">${esc(a.t)}</option>`).join("");
+  if(basket.has(selected)) $("#creditasset").value=selected;
+  loadCreditNotes();
+}
+function loadCreditNotes(){
+  const a=basket.get($("#creditasset").value); if(!a) return;
+  $("#creditauthor").value=a.credit_author||"";
+  $("#creditnotice").value=a.credit_notice||"";
+  $("#creditmods").value=a.modifications||"";
+  $("#creditevidence").value=a.evidence_url||"";
+  $("#creditreviewed").checked=!!a.reviewed_at;
+  $("#creditreviewstatus").textContent=Magpie.creditIssues(a).join(" · ") || "Your review notes are recorded. This is not a legal clearance.";
+  $("#creditnotesstatus").textContent="";
+}
+function saveCreditNotes(){
+  const old=basket.get($("#creditasset").value); if(!old) return;
+  try {
+    const updated=Magpie.saved({...old,credit_author:$("#creditauthor").value.trim(),credit_notice:$("#creditnotice").value.trim(),
+      modifications:$("#creditmods").value.trim(),evidence_url:$("#creditevidence").value.trim(),reviewed_at:$("#creditreviewed").checked?Date.now():0});
+    basket.set(old.u,updated);saveBasket();renderTray();openCredits();
+    $("#creditnotesstatus").textContent="Notes saved";
+  } catch(error){$("#creditnotesstatus").textContent=error.message;}
+}
+
 function openCredits(){
   // The tray hides itself when empty, but the basket can be emptied between
   // render and click. Opening anyway printed "All 0 entries are CC0".
   if (!basket.size) { renderTray(); return; }
   const needList = [...basket.values()].filter(a => !a.n);
   const need = needList.length;
-  const noName = needList.filter(a => !a.a).length;
+  const noName = needList.filter(a => !(a.credit_author||a.a)).length;
   $("#dlgnote").textContent = need
-    ? `${need} of ${basket.size} entries legally require attribution.` +
+    ? `${need} of ${basket.size} entries may require attribution or retained notices.` +
       (noName ? ` ${noName} of those ${noName===1?"has":"have"} no creator recorded — fill ${noName===1?"it":"them"} in by hand before shipping.` : "")
     : `All ${basket.size} entries are CC0 — no attribution is required, but keeping a record is good practice.`;
   $("#dlgnote").style.color = noName ? "var(--warn)" : "";
   renderCreditChanges();
+  populateCreditEditor();
+  const pending=[...basket.values()].filter(a=>Magpie.creditIssues(a).length).length;
+  if(pending) $("#dlgnote").textContent+=` ${pending} records still have review items; expand project notes below.`;
   $("#credits").value = creditsText();
   $("#copied").textContent = "";
   if(!$("#dlg").open) $("#dlg").showModal();

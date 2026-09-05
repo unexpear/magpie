@@ -115,6 +115,26 @@ class NetworkTests(unittest.TestCase):
                      commercial_ok,http_status,last_checked) VALUES(?,?,?,?,?,?,?,?,?)""",
                  (source + ":" + slug, source, "Fixture", self.base + path, "cc_by", 1, 1, status, checked))
 
+    def test_polyhaven_website_is_blocked_before_network_or_budget(self):
+        for host in ('polyhaven.com', 'www.polyhaven.com'):
+            result = self.cmd('fetch', '--url', 'https://' + host + '/a/fixture')
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('source terms', result.stderr)
+        self.assertEqual(self.sql('SELECT used FROM request_budget'), [])
+
+    def test_redirect_to_polyhaven_website_is_blocked(self):
+        self.server.routes['/asset'] = (302, {'Location': 'https://polyhaven.com/a/fixture'}, b'')
+        result = self.fetch()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('source terms', result.stderr)
+        self.assertEqual(self.sql('SELECT used FROM request_budget'), [(1,)])
+
+    def test_polyhaven_is_excluded_from_website_link_checks(self):
+        self.seed(source='polyhaven')
+        result = self.cmd('check', 'polyhaven', '--limit', '1', '--db', str(self.db))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.server.requests, [])
+
     def test_export_keeps_previous_file_on_database_iteration_error(self):
         self.seed()
         out=self.work / 'data.json'

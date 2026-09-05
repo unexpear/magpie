@@ -5,9 +5,9 @@
 - **Scraping the big sites.** itch.io is the highest-value source and has no public search
   API. Yeggi survives by linking out, but survival ≠ permission. Open question: ask itch.io
   directly before building that adapter? A "no" is cheaper to hear early.
-- **Thumbnail caching.** Hotlinking steals their bandwidth; caching copies their image.
-  Yeggi caches. Probably fine under fair use + it drives traffic to them, but it *is* the
-  one place we hold someone else's file. Unresolved.
+- **Preview rights.** Do not assume traffic referrals justify image reuse. The current
+  publication policy withholds OpenGameArt and Kenney previews and permits only
+  documented source categories; mirroring is not implemented. See [sources.md](sources.md).
 - **Being wrong about a licence.** If the site says CC0 and it isn't, and someone ships a
   game on our say-so — whose problem? Mitigation: never assert, always show the source's
   own licence string + link, and disclaim. Doesn't fully solve it.

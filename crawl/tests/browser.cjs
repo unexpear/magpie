@@ -5,6 +5,7 @@ const fs=require('node:fs');
 const path=require('node:path');
 const M=require('../web/model.js');
 const ROOT=path.resolve(__dirname,'..');
+const SITE=path.resolve(ROOT,process.env.MAGPIE_TEST_SITE||'web');
 const old={id:'test:barrel',t:'Barrel',s:'test',u:'https://source.test/barrel',ty:'3d_model',st:'lowpoly',l:'cc_by',lu:'https://creativecommons.org/licenses/by/4.0/',a:'',tg:'wood',c:1,n:0,p:5};
 const current={...old,a:'Ada'};
 const sa={...current,id:'test:stone',t:'Stone wall',u:'https://source.test/wall',l:'cc_by_sa',lu:'https://creativecommons.org/licenses/by-sa/4.0/',tg:'stone',p:10};
@@ -19,7 +20,7 @@ async function scenario(name,body,{data=fixture,saved}={}){
       const url=new URL(route.request().url());
       if(url.hostname!=='magpie.test') return route.abort();
       const file=url.pathname==='/model.js'?'model.js':url.pathname==='/data.json'?null:'index.html';
-      return route.fulfill({status:200,contentType:file==='index.html'?'text/html':file?'application/javascript':'application/json',body:file?fs.readFileSync(path.join(ROOT,'web',file)):JSON.stringify(data)});
+      return route.fulfill({status:200,contentType:file==='index.html'?'text/html':file?'application/javascript':'application/json',body:file?fs.readFileSync(path.join(SITE,file)):JSON.stringify(data)});
     });
     if(saved) await context.addInitScript(value=>localStorage.setItem('magpie.basket.v1',JSON.stringify(value)),saved);
     const page=await context.newPage();
@@ -31,8 +32,53 @@ async function scenario(name,body,{data=fixture,saved}={}){
   }finally{await context.close();}
 }
 (async()=>{
+  const {publication}=require('../publish.cjs');
+  const blocked={...current,s:'opengameart',th:'https://opengameart.org/preview.png'};
+  assert.equal(M.previewAllowed(blocked),false);
+  assert.equal(M.previewAllowed({...blocked,s:'kenney'}),false);
+  assert.equal(M.previewAllowed({...current,s:'polyhaven',th:'https://cdn.polyhaven.com/asset_img/thumbs/wood.png'}),true);
+  assert.equal(M.previewAllowed({...current,s:'polyhaven',th:'https://cdn.polyhaven.com/example.png'}),false);
+  assert.equal(M.previewAllowed({...current,s:'gameicons',a:'',th:'https://cdn.jsdelivr.net/gh/game-icons/icons@master/a.svg'}),false);
+  const staged=publication({...fixture,assets:[blocked,sa,cc0]},{version:1,asset_ids:[sa.id],source_urls:[cc0.u]});
+  assert.equal(staged.assets.length,1); assert.equal(staged.stats.total,1);
+  assert.equal(staged.assets[0].th,undefined);
+  assert.throws(()=>publication(fixture,{version:1,asset_ids:[''],source_urls:[]}));
+  const notes={...old,credit_author:'Project creator',credit_notice:'Retain this notice',modifications:'Unmodified',evidence_url:old.u,reviewed_at:1700000000000};
+  const revised=M.readProject(M.project([M.accept(notes,current)]))[0];
+  assert.equal(revised.credit_notice,notes.credit_notice); assert.equal(revised.reviewed_at,0);
+  assert.equal(revised.history[0].reviewed_at,notes.reviewed_at);
+  assert.throws(()=>M.saved({...current,reviewed_at:1e20}),/Invalid save date/);
+  console.log('PASS publication exclusions, preview policy and review history');
   browser=await chromium.launch({channel:process.env.MAGPIE_BROWSER_CHANNEL||(process.platform==='win32'?'msedge':undefined),headless:true});
   try{
+    await scenario('project attribution notes persist and reject unsafe evidence URLs',async page=>{
+      await page.locator('.hit[data-u="https://source.test/barrel"] [data-pick]').click();
+      await page.click('#trayopen');
+      await page.locator('#crediteditor summary').click();
+      await page.fill('#creditauthor','Project creator');
+      await page.fill('#creditnotice','Retain this copyright notice');
+      await page.fill('#creditmods','Unmodified');
+      await page.fill('#creditevidence','javascript:alert(1)');
+      await page.click('#creditsavenotes');
+      await expect(page.locator('#creditnotesstatus')).toContainText('HTTP(S)');
+      await page.fill('#creditevidence','https://source.test/terms');
+      await page.check('#creditreviewed');
+      await page.click('#creditsavenotes');
+      await expect(page.locator('#credits')).toHaveValue(/Retain this copyright notice/);
+      fs.mkdirSync(path.join(ROOT,'output/playwright'),{recursive:true});
+      await page.screenshot({path:path.join(ROOT,'output/playwright/credits.png')});
+      await page.reload(); await page.click('#trayopen');
+      await expect(page.locator('#credits')).toHaveValue(/Project creator/);
+      await expect(page.locator('#credits')).toHaveValue(/Changes: Unmodified/);
+      const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('magpie.basket.v1'))[0]);
+      assert.ok(saved.reviewed_at); assert.equal(saved.evidence_url,'https://source.test/terms');
+    });
+    await scenario('restricted source previews never become image requests',async page=>{
+      await expect(page.locator('#results .hit')).toHaveCount(1);
+      await expect(page.locator('#results img')).toHaveCount(0);
+      await page.locator('.hit').press('Enter');
+      await expect(page.locator('#dbody img')).toHaveCount(0);
+    },{data:{...fixture,assets:[blocked]}});
     await scenario('saved credits detect enrichment and preserve original revision',async page=>{
       await expect(page.locator('#traysub')).toContainText('need review');
       await page.click('#trayopen');
@@ -129,6 +175,6 @@ async function scenario(name,body,{data=fixture,saved}={}){
         }return values;
       });
       console.log('Browser search including rendering: '+JSON.stringify(times));
-    },{data:JSON.parse(fs.readFileSync(path.join(ROOT,'web/data.json'),'utf8'))});
+    },{data:JSON.parse(fs.readFileSync(path.join(SITE,'data.json'),'utf8'))});
   }finally{await browser.close();}
 })().catch(error=>{console.error(error);process.exitCode=1;});

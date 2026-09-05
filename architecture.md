@@ -7,7 +7,7 @@ Magpie is a metadata crawler and a static browser application. It does not query
 1. Native C adapters and external Python adapters fetch source metadata through the same C fetcher.
 2. SQLite stores normalized assets, source tags, inferred tags, cached HTTP responses, request reservations and source health.
 3. A validated export writes browser JSON from a consistent database snapshot and replaces the previous file after successful completion.
-4. The browser filters and ranks that catalogue locally. Preview images and download links point to the original sources.
+4. The publication builder applies persistent exclusions and permitted-preview rules, then stages the public site. The browser filters and ranks that catalogue locally; downloads remain on the source sites.
 
 ## Crawler
 
@@ -27,4 +27,4 @@ Source health separates observation time, attempted crawl time, successful compl
 
 The local Python runner rotates creator/tag enrichment, due link checks and weekly API catalogue refreshes. It uses the database's actual request ledger, defers failures and exports valid progress safely. OGA's large HTML catalogue crawl and Kenney's curated pack-list refresh remain explicit operations.
 
-The public site consists of `crawl/web/index.html`, `model.js` and `data.json`. It needs a static HTTP host. Crawling and publishing are separate operations; persistent crawler state must survive between runs.
+The public site is staged in `crawl/build/site/` by `node crawl/publish.cjs`, including the rights/corrections page. It needs a static HTTP host. Crawling and publishing are separate operations; persistent crawler state must survive between runs. Saved project notes and reviewed metadata history remain in browser storage and downloaded backups.

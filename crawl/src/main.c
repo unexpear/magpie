@@ -35,7 +35,7 @@
 
 static const char *UA =
     "Magpie/" VERSION
-    " (game asset metadata index)";
+    " (+https://github.com/unexpear/magpie; game asset metadata index)";
 
 static const char *db_path = "index.sqlite";
 /* Process-wide network request ceiling from --max-requests; 0 = unlimited. */
@@ -994,7 +994,11 @@ int main(int argc, char **argv)
 
     {
         const char *configured=getenv("MAGPIE_USER_AGENT");
-        if(configured && *configured) UA=configured;
+        static char custom_ua[1024];
+        if(configured && *configured) {
+            snprintf(custom_ua,sizeof custom_ua,"Magpie/" VERSION " (+https://github.com/unexpear/magpie) %s",configured);
+            UA=custom_ua;
+        }
 #ifdef _WIN32
         wchar_t path[32768]; char utf8[32768];
         if(GetModuleFileNameW(NULL,path,32768) &&
