@@ -52,7 +52,6 @@
   function saved(value){
     const a=record(value);
     if(value.history!=null && !Array.isArray(value.history)) throw new Error("Invalid revision history");
-    if((value.history||[]).length>100) throw new Error("Too many revisions");
     a.history=(value.history||[]).map(record);
     return a;
   }
@@ -70,7 +69,10 @@
     return changedFields.filter(key => (old[key]||"") !== (current[key]||""));
   }
   function accept(old, current){
-    return {...record(old),...asset(current),reviewed_at:0,saved_at:Date.now(),history:[...(old.history||[]),record(old)]};
+    const notes=record(old);
+    // Only project notes survive outside history; omitted source fields are removals.
+    for(const key of fields) delete notes[key];
+    return {...asset(current),...notes,reviewed_at:0,saved_at:Date.now(),history:[...(old.history||[]),record(old)]};
   }
   function obligations(a){
     switch(a.l){
@@ -98,6 +100,7 @@
     const issues=[];
     if(a.l!=="cc0" && !(a.credit_author||a.a)) issues.push("creator missing");
     if(!a.lu) issues.push("licence link missing");
+    if(a.l==="oga_by" && a.lu==="https://opengameart.org/content/faq") issues.push("exact OGA-BY version not recorded; check the source");
     if(["unknown","store_eula","personal_only"].includes(a.l)) issues.push("usage terms need review");
     if(!a.reviewed_at) issues.push("source instructions not reviewed");
     if(a.l!=="cc0" && !a.modifications) issues.push("changes not recorded");

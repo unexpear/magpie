@@ -404,6 +404,15 @@ class NetworkTests(unittest.TestCase):
 
 
 class AdapterTests(unittest.TestCase):
+    def test_oga_licence_versions_emit_distinct_official_links(self):
+        html = 'Displaying 1 - 1 of 1 <span class="art-preview-title"><a href="/content/test">Test</a></span>'
+        with patch.object(oga, 'TYPES', oga.TYPES[:1]), patch.object(oga, 'get', return_value=html):
+            rc, rows = self.capture(oga.crawl, 1, 'oga_by', None)
+        self.assertEqual(rc, 0)
+        self.assertEqual([r['licence_url'] for r in rows], [
+            'https://opengameart.org/content/oga-by-30-faq',
+            'https://opengameart.org/content/oga-by-40-faq'])
+
     def capture(self, fn, *args):
         out = io.StringIO()
         with contextlib.redirect_stdout(out), contextlib.redirect_stderr(io.StringIO()):

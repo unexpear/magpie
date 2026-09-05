@@ -48,7 +48,7 @@ LICENCES = [
     (3,     "cc_by_sa", "CC-BY-SA 3.0", "https://creativecommons.org/licenses/by-sa/3.0/"),
     (17982, "cc_by_sa", "CC-BY-SA 4.0", "https://creativecommons.org/licenses/by-sa/4.0/"),
     (10310, "oga_by",   "OGA-BY 3.0",   BASE + "/content/oga-by-30-faq"),
-    (31772, "oga_by",   "OGA-BY 4.0",   BASE + "/content/oga-by-30-faq"),
+    (31772, "oga_by",   "OGA-BY 4.0",   BASE + "/content/oga-by-40-faq"),
     (2,     "cc_by",    "CC-BY 3.0",    "https://creativecommons.org/licenses/by/3.0/"),
     (17981, "cc_by",    "CC-BY 4.0",    "https://creativecommons.org/licenses/by/4.0/"),
     (4,     "cc0",      "CC0",          "https://creativecommons.org/publicdomain/zero/1.0/"),

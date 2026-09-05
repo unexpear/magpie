@@ -24,6 +24,8 @@ Keep request budgets, robots enforcement, persistent cooldowns and a clear conta
 
 ## Publication and corrections
 
+The September 2026 OGA-BY correction fixes the adapter's 4.0 link. The 529 legacy OGA-BY records had identical 3.0 links for both versions, with no retained evidence to distinguish them. Their links now point to the source's general licence guidance and the browser flags the exact version as unverified. No licence version, observation date or commercial category was inferred during this correction. Future crawls emit distinct version-specific links.
+
 The deployed site is built with `npm run build:site` in `crawl/`. This applies the preview allowlist and `crawl/exclusions.json` before producing `crawl/build/site/`. Never publish the raw export directly as a replacement for this step.
 
 For an upheld removal request, add its stable ID to `asset_ids` and its original source URL to `source_urls` in the versioned exclusions file, then build, test and deploy. Using both protects against a recrawl retaining either identity. Correct erroneous metadata at its origin and in future exports as appropriate. Site exclusions do not delete the source export or old Git commits; repository/history removal must be reviewed separately. Do not place private evidence in public issues or commits.

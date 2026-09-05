@@ -517,8 +517,8 @@ function wire(){
         const existing=[...next.values()].find(b=>(a.id && b.id===a.id) || b.u===a.u);
         if(!existing) next.set(a.u,a);
       }
-      basket=next; saveBasket(); renderTray(); markPicked();
-      $("#projectnote").textContent="Project imported; existing saved records were kept.";
+      basket=next; const persisted=saveBasket(); renderTray(); markPicked();
+      if(persisted) $("#projectnote").textContent="Project imported; existing saved records were kept.";
     } catch(error) { $("#projectnote").textContent=error.message; }
     e.target.value="";
   });
@@ -1087,6 +1087,7 @@ function openDetail(u){
         ${row("Commercial filter", a.c ? "Matches the indexed licence category; check source terms and project compatibility"
                              : "Outside the conservative filter; review the source terms")}
         ${row("Obligations", esc(Magpie.obligations(a)))}
+        ${a.l==="oga_by" && a.lu==="https://opengameart.org/content/faq" ? row("Licence version", "Not verified in this legacy record; check the original source") : ""}
         ${row("Source seen", dateLabel(a.seen))}
         ${row("Link checked", dateLabel(a.checked))}
         ${row("Source-reported update", dateLabel(a.up))}
@@ -1122,9 +1123,15 @@ function openDetail(u){
    at ship time you have to produce an accurate credits file. Reconstructing
    that from browser history is how attribution silently gets skipped. */
 
+let storageFailed=false;
+const storageWarning="Changes are only in this tab: browser storage failed. Back up this project before closing.";
 function saveBasket(){
-  try { localStorage.setItem(LS_KEY, JSON.stringify([...basket.values()])); }
-  catch { $("#projectnote").textContent="Browser storage unavailable. Back up this project before closing."; }
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify([...basket.values()]));
+    storageFailed=false; $("#projectnote").textContent=""; return true;
+  } catch {
+    storageFailed=true; $("#projectnote").textContent=storageWarning; return false;
+  }
 }
 
 function restoreBasket(){
@@ -1147,7 +1154,8 @@ function renderTray(){
       (noName ? ` · ${noName} missing a creator name` : "");
   const changes=[...basket.values()].filter(a=>Magpie.differences(a,currentAsset(a)).length).length;
   if(changes) $("#traysub").textContent+=` · ${changes} saved records need review`;
-  $("#traysub").style.color = noName || changes ? "var(--warn)" : "";
+  if(storageFailed) $("#traysub").textContent+=" · not saved — back up before closing";
+  $("#traysub").style.color = noName || changes || storageFailed ? "var(--warn)" : "";
 }
 
 function creditsText(){
@@ -1261,8 +1269,8 @@ function saveCreditNotes(){
   try {
     const updated=Magpie.saved({...old,credit_author:$("#creditauthor").value.trim(),credit_notice:$("#creditnotice").value.trim(),
       modifications:$("#creditmods").value.trim(),evidence_url:$("#creditevidence").value.trim(),reviewed_at:$("#creditreviewed").checked?Date.now():0});
-    basket.set(old.u,updated);saveBasket();renderTray();openCredits();
-    $("#creditnotesstatus").textContent="Notes saved";
+    basket.set(old.u,updated);const persisted=saveBasket();renderTray();openCredits();
+    $("#creditnotesstatus").textContent=persisted ? "Notes saved" : storageWarning;
   } catch(error){$("#creditnotesstatus").textContent=error.message;}
 }
 
@@ -1282,6 +1290,10 @@ function openCredits(){
   populateCreditEditor();
   const pending=[...basket.values()].filter(a=>Magpie.creditIssues(a).length).length;
   if(pending) $("#dlgnote").textContent+=` ${pending} records still have review items; expand project notes below.`;
+  if(storageFailed) {
+    $("#dlgnote").textContent+=" "+storageWarning;
+    $("#dlgnote").style.color="var(--warn)";
+  }
   $("#credits").value = creditsText();
   $("#copied").textContent = "";
   if(!$("#dlg").open) $("#dlg").showModal();

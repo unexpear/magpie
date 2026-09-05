@@ -51,6 +51,54 @@ async function scenario(name,body,{data=fixture,saved}={}){
   console.log('PASS publication exclusions, preview policy and review history');
   browser=await chromium.launch({channel:process.env.MAGPIE_BROWSER_CHANNEL||(process.platform==='win32'?'msedge':undefined),headless:true});
   try{
+    await scenario('legacy OGA-BY records disclose the unknown version in details and credits',async page=>{
+      await page.locator('.hit').first().press('Enter');
+      await expect(page.locator('#dbody')).toContainText('Not verified in this legacy record');
+      await page.click('#dpick');await page.click('#dclose');await page.click('#trayopen');
+      await expect(page.locator('#credits')).toHaveValue(/exact OGA-BY version not recorded/);
+    },{data:{...fixture,assets:[{...current,l:'oga_by',lu:'https://opengameart.org/content/faq'}]}});
+    await scenario('failed storage never reports a successful import or notes save and remains exportable',async page=>{
+      await page.evaluate(()=>{window.realSetItem=Storage.prototype.setItem;Storage.prototype.setItem=function(){throw new DOMException('Full','QuotaExceededError');};});
+      await page.locator('#projectfile').setInputFiles({name:'project.json',mimeType:'application/json',buffer:Buffer.from(M.project([current]))});
+      await expect(page.locator('#projectnote')).toContainText('only in this tab');
+      await expect(page.locator('#projectnote')).not.toContainText('Project imported');
+      await page.click('#trayopen');
+      await expect(page.locator('#dlgnote')).toContainText('browser storage failed');
+      await page.locator('#crediteditor summary').click();
+      await page.fill('#creditnotice','Keep this notice');await page.click('#creditsavenotes');
+      await expect(page.locator('#creditnotesstatus')).toContainText('browser storage failed');
+      await expect(page.locator('#creditnotesstatus')).not.toHaveText('Notes saved');
+      await page.click('#dlgclose');
+      const downloaded=page.waitForEvent('download');await page.click('#projectexport');
+      const file=await downloaded;
+      assert.equal(M.readProject(fs.readFileSync(await file.path(),'utf8'))[0].credit_notice,'Keep this notice');
+      assert.equal(await page.evaluate(()=>localStorage.getItem('magpie.basket.v1')),null);
+      await page.evaluate(()=>{Storage.prototype.setItem=window.realSetItem;});
+      await page.click('#trayopen');await page.click('#creditsavenotes');
+      await expect(page.locator('#creditnotesstatus')).toHaveText('Notes saved');
+      await expect(page.locator('#dlgnote')).not.toContainText('browser storage failed');
+      await page.reload();await page.click('#trayopen');
+      await expect(page.locator('#credits')).toHaveValue(/Keep this notice/);
+    });
+    await scenario('accepting removed source fields clears them while retaining notes and history',async page=>{
+      await page.click('#trayopen');await page.click('[data-accept]');
+      await expect(page.locator('[data-accept]')).toHaveCount(0);
+      const result=await page.evaluate(()=>JSON.parse(localStorage.getItem('magpie.basket.v1'))[0]);
+      assert.equal(result.a,undefined);assert.equal(result.lu,undefined);assert.equal(result.th,undefined);
+      assert.equal(result.credit_notice,'Keep');assert.equal(result.history[0].a,'Ada');
+      assert.equal(result.history[0].lu,current.lu);assert.equal(result.reviewed_at,0);
+    },{saved:[{...current,th:'https://source.test/old.png',credit_notice:'Keep',reviewed_at:123}],data:{...fixture,assets:[{...current,a:null,lu:null,th:null}]}});
+    await scenario('revision 101 and previously oversized histories survive reload and backup',async page=>{
+      const saved={...old,history:Array.from({length:101},(_,i)=>({...old,t:'Revision '+i}))};
+      await page.locator('#projectfile').setInputFiles({name:'project.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify([saved]))});
+      await page.click('#trayopen');await page.click('[data-accept]');
+      await page.reload();await page.click('#trayopen');
+      await expect(page.locator('#credits')).toHaveValue(/by Ada/);
+      const result=await page.evaluate(()=>JSON.parse(localStorage.getItem('magpie.basket.v1'))[0]);
+      const restored=M.readProject(M.project([result]))[0];
+      assert.equal(restored.history.length,102);assert.equal(restored.history[0].t,'Revision 0');
+      assert.equal(restored.history[101].t,old.t);
+    });
     await scenario('inferred tags can be excluded from search and shared tag filters',async page=>{
       await expect(page.locator('#results .hit')).toHaveCount(3);
       await page.fill('#q','metal');
