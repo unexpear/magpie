@@ -1,0 +1,46 @@
+name: Validate and publish Magpie
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: crawl/package-lock.json
+      - name: Install browser test dependencies
+        run: npm ci
+        working-directory: crawl
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+        working-directory: crawl
+      - name: Validate catalogue and browser flows
+        run: npm test
+        working-directory: crawl
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: crawl/web
+      - name: Publish
+        id: deployment
+        uses: actions/deploy-pages@v5

@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Magpie background runner</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%234a9eff'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#0d1117;--panel:#161b22;--line:#2a313b;--fg:#e6edf3;--dim:#9198a1;
+      --faint:#6e7681;--accent:#4a9eff;--ok:#3fb950;--warn:#d29922;--bad:#f85149}
+@media (prefers-color-scheme:light){:root{--bg:#fff;--panel:#f6f8fa;--line:#d1d9e0;
+      --fg:#1f2328;--dim:#59636e;--faint:#818b98;--accent:#0969da;--ok:#1a7f37;
+      --warn:#9a6700;--bad:#cf222e}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);padding:22px;
+  font:14px/1.6 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+.wrap{max-width:620px;margin:0 auto}
+h1{font-size:17px;margin:0 0 3px}
+.sub{color:var(--dim);font-size:13px;margin-bottom:18px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;
+  padding:16px;margin-bottom:14px}
+.state{display:flex;align-items:center;gap:10px;font-size:19px;font-weight:600}
+.dot{width:13px;height:13px;border-radius:50%;flex:0 0 auto}
+.row{display:flex;gap:10px;padding:5px 0;font-variant-numeric:tabular-nums}
+.row .n{margin-left:auto;color:var(--dim)}
+.bar{height:9px;background:var(--line);border-radius:99px;overflow:hidden;margin:5px 0 12px}
+.bar i{display:block;height:100%;background:var(--accent)}
+.bar i.warn{background:var(--warn)} .bar i.bad{background:var(--bad)}
+h2{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--dim);
+  margin:0 0 8px;font-weight:600}
+.big{font-size:30px;font-weight:700;font-variant-numeric:tabular-nums}
+.big small{font-size:13px;font-weight:400;color:var(--dim)}
+code{background:var(--bg);border:1px solid var(--line);border-radius:5px;
+  padding:1px 6px;font-size:12px}
+.err{color:var(--bad)} .muted{color:var(--faint);font-size:12px}
+</style>
+</head>
+<body><div class="wrap">
+
+<h1>Magpie background runner</h1>
+<div class="sub">Reads <code>status.json</code>. Refreshes every 30s.</div>
+
+<div class="card">
+  <div class="state"><span class="dot" id="dot"></span><span id="state">loading…</span></div>
+  <div class="muted" id="reason" style="margin-top:6px"></div>
+</div>
+
+<div class="card">
+  <h2>Uncreditable backlog</h2>
+  <div class="big"><span id="uncred">–</span> <small>assets whose licence we cannot honour</small></div>
+  <div class="muted" id="uncredNote" style="margin-top:6px"></div>
+</div>
+
+<div class="card">
+  <h2>Request budget</h2>
+  <div class="row">today<span class="n" id="dayTxt">–</span></div>
+  <div class="bar"><i id="dayBar"></i></div>
+  <div class="row">this week<span class="n" id="weekTxt">–</span></div>
+  <div class="bar"><i id="weekBar"></i></div>
+  <div class="muted">Deliberately far below what any source allows. Enforced inside
+    <code>magpie</code> itself, so it holds however the command is run.</div>
+</div>
+
+<div class="card">
+  <h2>Index</h2>
+  <div class="row">assets<span class="n" id="assets">–</span></div>
+  <div class="row">urls never link-checked<span class="n" id="unchecked">–</span></div>
+  <div class="row">last run<span class="n" id="lastRun">–</span></div>
+  <div class="row">last error<span class="n" id="lastErr">–</span></div>
+</div>
+
+<div class="card">
+  <h2>Controls</h2>
+  <div class="muted">This page is a read-out; a static file cannot press buttons.
+    Control lives next to it, where it works with nothing running:</div>
+  <div class="row" style="margin-top:8px"><code>STOP.cmd</code>
+    <span class="n">halt before the next request</span></div>
+  <div class="row"><code>RESUME.cmd</code><span class="n">carry on where it stopped</span></div>
+  <div class="row"><code>runner.log</code><span class="n">what it did, and when</span></div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const n = v => v == null ? "–" : v.toLocaleString();
+
+function bar(el, used, total){
+  const pct = total ? Math.min(100, used / total * 100) : 0;
+  el.style.width = pct + "%";
+  el.className = pct > 90 ? "bad" : pct > 60 ? "warn" : "";
+}
+
+function paint(s){
+  const stopped = s.stopped;
+  const idle    = !s.next;
+  // Colour is the whole status at a glance: if you have to read the page to
+  // know something is wrong, the indicator has failed.
+  const [c, label] =
+    stopped        ? ["var(--bad)",   "STOPPED"] :
+    s.last_error   ? ["var(--warn)",  "LAST RUN FAILED"] :
+    idle           ? ["var(--faint)", "IDLE"] :
+                     ["var(--accent)","WORKING"];
+  $("#dot").style.background = c;
+  $("#state").textContent = label;
+  $("#reason").textContent = s.reason || "";
+
+  $("#uncred").textContent = n(s.uncreditable);
+  $("#uncredNote").textContent = s.uncreditable
+    ? `About ${(s.uncreditable * 10 / 3600).toFixed(1)} hours of politely paced requests remain. This number ends.`
+    : "Nothing outstanding — every credit-required asset has a creator recorded.";
+
+  $("#dayTxt").textContent  = `${n(s.day_used)} / ${n(s.day_budget)}`;
+  $("#weekTxt").textContent = `${n(s.week_used)} / ${n(s.week_budget)}`;
+  bar($("#dayBar"),  s.day_used,  s.day_budget);
+  bar($("#weekBar"), s.week_used, s.week_budget);
+
+  $("#assets").textContent    = n(s.assets);
+  $("#unchecked").textContent = n(s.unchecked);
+  $("#lastRun").textContent   = s.last_run || "never";
+  $("#lastErr").innerHTML     = s.last_error
+    ? `<span class="err">${s.last_error}</span>` : "none";
+}
+
+function load(){
+  fetch("status.json?" + Date.now())
+    .then(r => r.ok ? r.json() : Promise.reject(r.status))
+    .then(paint)
+    .catch(() => {
+      $("#state").textContent = "NO STATUS YET";
+      $("#reason").textContent = "Run:  python runner.py --dry-run";
+    });
+}
+load();
+setInterval(load, 30000);
+</script>
+</div></body>
+</html>

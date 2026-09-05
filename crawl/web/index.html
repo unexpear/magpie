@@ -1,0 +1,1240 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Magpie — search game assets across sites</title>
+<link rel="canonical" href="https://unexpear.github.io/magpie/">
+<meta property="og:url" content="https://unexpear.github.io/magpie/">
+<meta name="description" content="Search game assets across five sources, compare licence terms, and build a credits list with portable project backups.">
+<meta property="og:title" content="Magpie — game assets and credits">
+<meta property="og:description" content="Find assets, review their licence terms, and keep the credits you need with your project.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%234a9eff'/%3E%3Cpath d='M9 20c0-5 3-9 8-9 3 0 5 2 5 4 0 3-3 4-6 4l6 5H9z' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#0d1117; --panel:#161b22; --raise:#1c232c; --line:#2a313b;
+  --fg:#e6edf3; --dim:#9198a1; --faint:#6e7681;
+  --accent:#4a9eff; --accent-fg:#04121f;
+  --ok:#3fb950; --warn:#d29922; --bad:#f85149;
+  --shadow:0 6px 24px rgba(0,0,0,.4);
+  --r:10px;
+}
+@media (prefers-color-scheme: light){
+  :root{
+    --bg:#ffffff; --panel:#f6f8fa; --raise:#fff; --line:#d1d9e0;
+    --fg:#1f2328; --dim:#59636e; --faint:#818b98;
+    --accent:#0969da; --accent-fg:#fff;
+    --ok:#1a7f37; --warn:#9a6700; --bad:#cf222e;
+    --shadow:0 6px 24px rgba(31,35,40,.12);
+  }
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;background:var(--bg);color:var(--fg);
+  font:14px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* ---------- header ---------- */
+header{
+  position:sticky;top:0;z-index:20;background:var(--bg);
+  border-bottom:1px solid var(--line);padding:14px 20px 12px;
+}
+.brand{display:flex;flex-wrap:wrap;align-items:baseline;gap:9px;margin-bottom:11px}
+.brand h1{margin:0;font-size:16px;letter-spacing:-.01em}
+.brand .tag{color:var(--dim);font-size:13px}
+.brand .count{margin-left:auto;color:var(--faint);font-size:12px;
+  font-variant-numeric:tabular-nums}
+
+.searchwrap{position:relative;display:flex;align-items:center}
+#q{
+  width:100%;padding:12px 88px 12px 40px;font-size:15px;
+  background:var(--panel);color:var(--fg);
+  border:1px solid var(--line);border-radius:var(--r);
+}
+#q::placeholder{color:var(--faint)}
+#q:focus{outline:none;border-color:var(--accent);background:var(--raise)}
+.searchwrap .ico{position:absolute;left:14px;color:var(--faint);pointer-events:none}
+.kbd{
+  position:absolute;right:12px;display:flex;gap:5px;align-items:center;
+  color:var(--faint);font-size:11px;pointer-events:none
+}
+.kbd b{
+  font-weight:500;border:1px solid var(--line);border-bottom-width:2px;
+  border-radius:4px;padding:1px 5px;background:var(--bg)
+}
+#clearq{
+  position:absolute;right:10px;border:0;background:var(--line);color:var(--fg);
+  width:22px;height:22px;border-radius:50%;cursor:pointer;line-height:1;
+  display:none;font-size:13px
+}
+
+/* ---------- toolbar ---------- */
+.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:11px}
+.seg{display:flex;background:var(--panel);border:1px solid var(--line);
+  border-radius:8px;padding:2px;gap:2px}
+.seg button{
+  border:0;background:none;padding:6px 12px;border-radius:6px;cursor:pointer;
+  color:var(--dim);white-space:nowrap
+}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg);font-weight:600}
+.seg button:hover:not([aria-pressed="true"]){color:var(--fg)}
+.spacer{flex:1}
+select{
+  padding:7px 9px;background:var(--panel);color:var(--fg);
+  border:1px solid var(--line);border-radius:8px;cursor:pointer
+}
+
+/* ---------- chips ---------- */
+#chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+#chips:empty{display:none}
+.chip{
+  display:inline-flex;align-items:center;gap:6px;background:var(--raise);
+  border:1px solid var(--line);border-radius:999px;padding:3px 6px 3px 11px;
+  font-size:12px
+}
+.chip b{font-weight:600}
+.chip button{
+  border:0;background:var(--line);color:var(--dim);cursor:pointer;
+  width:17px;height:17px;border-radius:50%;line-height:1;font-size:12px;padding:0
+}
+.chip button:hover{background:var(--bad);color:#fff}
+.chip.clear{cursor:pointer;border-style:dashed;padding:3px 11px;color:var(--dim)}
+
+/* ---------- layout ---------- */
+.layout{display:flex;align-items:flex-start;gap:20px;padding:20px;
+  padding-bottom:96px;flex-wrap:wrap}
+aside{flex:0 0 236px;min-width:214px;position:sticky;top:172px}
+main{flex:1 1 480px;min-width:290px}
+@media (max-width:820px){ aside{position:static;flex:1 1 100%} }
+
+.card{background:var(--panel);border:1px solid var(--line);
+  border-radius:var(--r);padding:13px;margin-bottom:13px}
+.card h2{margin:0 0 9px;font-size:11px;text-transform:uppercase;
+  letter-spacing:.07em;color:var(--dim);font-weight:600}
+.card h2:not(:first-child){margin-top:14px}
+
+.opt{display:flex;align-items:center;gap:8px;padding:3px 0;cursor:pointer;
+  border-radius:5px}
+.opt:hover{color:var(--accent)}
+.opt .n{margin-left:auto;color:var(--faint);font-size:11px;
+  font-variant-numeric:tabular-nums}
+.opt input{accent-color:var(--accent);margin:0}
+
+.srcrow{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px;padding:6px 0;
+  border-bottom:1px solid var(--line)}
+.srcrow:last-child{border-bottom:0}
+.srcrow > small{flex-basis:100%}
+.srcrow .n{margin-left:auto;font-variant-numeric:tabular-nums;font-size:12px}
+.srcrow small{display:block;color:var(--faint);font-size:11px}
+.srcrow .pick{border:0;background:none;padding:0;cursor:pointer;
+  color:var(--accent);text-align:left}
+.srcrow .pick:hover{text-decoration:underline}
+
+.stat{display:flex;gap:8px;padding:3px 0;font-size:12px}
+.stat .n{margin-left:auto;font-variant-numeric:tabular-nums;color:var(--dim)}
+
+/* ---------- results ---------- */
+#results{display:grid;gap:12px;
+  grid-template-columns:repeat(auto-fill,minmax(228px,1fr))}
+.hit{
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--r);
+  overflow:hidden;display:flex;flex-direction:column;position:relative;
+  transition:border-color .12s;cursor:pointer
+}
+.hit:hover{border-color:var(--accent)}
+.hit:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.hit.cursor{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.hit.picked{border-color:var(--ok);box-shadow:inset 0 0 0 1px var(--ok)}
+.thumb{
+  aspect-ratio:4/3;width:100%;object-fit:cover;background:var(--raise);
+  display:block;border-bottom:1px solid var(--line)
+}
+/* Sprites, icons and UI are artwork with edges — cropping them to fill a box
+   throws away the thing you are trying to judge. Textures and models tile or
+   fill naturally, so those still cover. */
+.thumb.contain{object-fit:contain;padding:6px;
+  background-image:
+    linear-gradient(45deg,var(--line) 25%,transparent 25%),
+    linear-gradient(-45deg,var(--line) 25%,transparent 25%),
+    linear-gradient(45deg,transparent 75%,var(--line) 75%),
+    linear-gradient(-45deg,transparent 75%,var(--line) 75%);
+  background-size:14px 14px;
+  background-position:0 0,0 7px,7px -7px,-7px 0}
+/* Pixel art smoothed by the browser is a different asset than the one you
+   would ship. Nearest-neighbour is not a nicety here, it is accuracy. */
+/* Order matters: the last declaration a browser understands wins, and
+   `pixelated` is the one with real nearest-neighbour semantics. `crisp-edges`
+   is the fallback for engines that lack it, so it must come first. */
+.thumb.pixel{image-rendering:crisp-edges;image-rendering:pixelated}
+.thumb.none{
+  display:flex;flex-direction:column;gap:4px;align-items:center;
+  justify-content:center;color:var(--faint);font-size:11px;letter-spacing:.04em
+}
+.thumb.none .glyph{font-size:26px;line-height:1;opacity:.5}
+.hit .body{padding:11px;display:flex;flex-direction:column;gap:6px;flex:1}
+.hit .t{font-weight:600;line-height:1.3;font-size:14px}
+.hit .meta{color:var(--dim);font-size:12px}
+.badges{display:flex;flex-wrap:wrap;gap:4px;margin-top:auto;padding-top:7px}
+.b{font-size:10.5px;padding:1.5px 7px;border-radius:999px;
+  border:1px solid var(--line);color:var(--dim);white-space:nowrap}
+.b.ok{color:var(--ok);border-color:color-mix(in srgb,var(--ok) 45%,transparent)}
+.b.warn{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 45%,transparent)}
+.b.bad{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 45%,transparent)}
+.pick-btn{
+  border:1px solid var(--line);background:var(--raise);color:var(--dim);
+  border-radius:7px;padding:6px 9px;cursor:pointer;font-size:12px;
+  display:flex;align-items:center;justify-content:center;gap:6px;margin-top:2px
+}
+.pick-btn:hover{border-color:var(--accent);color:var(--accent)}
+.hit.picked .pick-btn{border-color:var(--ok);color:var(--ok)}
+
+#status{color:var(--dim);margin-bottom:13px;min-height:20px}
+#status b{color:var(--fg)}
+.empty{
+  border:1px dashed var(--line);border-radius:var(--r);padding:26px;
+  text-align:center;color:var(--dim)
+}
+.empty h3{margin:0 0 7px;color:var(--fg);font-size:15px}
+.empty button{
+  margin-top:11px;border:1px solid var(--accent);background:none;
+  color:var(--accent);padding:7px 13px;border-radius:8px;cursor:pointer
+}
+#more{
+  width:100%;padding:11px;margin-top:14px;background:var(--panel);color:var(--fg);
+  border:1px solid var(--line);border-radius:var(--r);cursor:pointer
+}
+#more:hover{border-color:var(--accent);color:var(--accent)}
+.skeleton{height:186px;border-radius:var(--r);background:var(--panel);
+  border:1px solid var(--line);animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.55}50%{opacity:.95}}
+
+/* ---------- credits tray ---------- */
+#tray{
+  position:fixed;left:0;right:0;bottom:0;z-index:30;
+  background:var(--raise);border-top:1px solid var(--line);box-shadow:var(--shadow);
+  padding:11px 20px;display:none;align-items:center;gap:12px;flex-wrap:wrap
+}
+#tray.on{display:flex}
+#tray .lead{font-weight:600}
+#tray .sub{color:var(--dim);font-size:12px}
+.btn{
+  border:1px solid var(--line);background:var(--panel);color:var(--fg);
+  padding:8px 14px;border-radius:8px;cursor:pointer
+}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--accent-fg);border-color:var(--accent);
+  font-weight:600}
+
+dialog{
+  border:1px solid var(--line);border-radius:var(--r);background:var(--panel);
+  color:var(--fg);padding:0;max-width:min(760px,92vw);width:100%;box-shadow:var(--shadow);
+  /* Cap the height and let the middle scroll, so the footer buttons are always
+     reachable. Without this a long credits list pushed "Copy to clipboard"
+     off the bottom of the screen - the primary action, unclickable. */
+  max-height:90vh;display:flex;flex-direction:column
+}
+dialog:not([open]){display:none}
+dialog .dlg-head,dialog .dlg-foot{flex:0 0 auto}
+dialog .dlg-body{flex:1 1 auto;overflow-y:auto;min-height:0}
+dialog::backdrop{background:rgba(0,0,0,.55)}
+.dlg-head{display:flex;align-items:center;gap:10px;padding:15px 17px;
+  border-bottom:1px solid var(--line)}
+.dlg-head h3{margin:0;font-size:15px}
+.dlg-body{padding:15px 17px}
+.dlg-body p{margin:0 0 11px;color:var(--dim);font-size:13px}
+textarea{
+  width:100%;height:min(290px,42vh);background:var(--bg);color:var(--fg);
+  border:1px solid var(--line);border-radius:8px;padding:11px;
+  font:12px/1.6 ui-monospace,SFMono-Regular,Consolas,monospace;resize:vertical
+}
+.dlg-foot{display:flex;gap:9px;padding:13px 17px;border-top:1px solid var(--line);
+  align-items:center}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* ---------- detail dialog ---------- */
+#detail .dlg-body{display:flex;gap:15px;flex-wrap:wrap}
+#detail .shot{flex:0 0 250px;max-width:100%}
+#detail .shot img{width:100%;border:1px solid var(--line);border-radius:8px;
+  background:var(--bg)}
+#detail .facts{flex:1 1 260px;min-width:230px}
+#detail dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:5px 12px}
+#detail dt{color:var(--dim);font-size:12px}
+#detail dd{margin:0;font-size:13px;word-break:break-word}
+.taglist{display:flex;flex-wrap:wrap;gap:4px;margin-top:3px}
+.taglist button{
+  border:1px solid var(--line);background:var(--bg);color:var(--fg);
+  border-radius:999px;padding:1px 8px;font-size:11px;cursor:pointer}
+.taglist button:hover{border-color:var(--accent);color:var(--accent)}
+.taglist button.mined{border-style:dashed;color:var(--dim)}
+.hint{color:var(--faint);font-size:11px;margin-top:3px}
+
+/* ---------- narrow screens ---------- */
+@media (max-width:820px){
+  .seg{flex-wrap:wrap}
+  /* Sticky cost a quarter of the screen once the licence control wrapped onto
+     two lines. On a touch screen there is no "/" shortcut to justify it, so
+     let the header scroll away and keep the toolbar to a single swipeable row. */
+  header{position:static;padding:11px 13px 9px}
+  .seg{overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none}
+  .seg::-webkit-scrollbar{display:none}
+  .toolbar{flex-wrap:nowrap}
+  .layout{padding:13px;gap:13px;padding-bottom:110px}
+  aside{order:2}
+  main{order:1}
+  #results{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+  .kbd{display:none}
+  #tray{padding:9px 13px}
+  #detail .shot{flex:1 1 100%}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <h1>Magpie</h1>
+    <span class="tag">game asset search</span>
+    <span class="count" id="brandcount"></span>
+    <button class="btn" id="projectimport">Import project</button>
+    <input id="projectfile" type="file" accept="application/json,.json" hidden>
+    <span id="projectnote" role="status"></span>
+  </div>
+
+  <p style="color:var(--dim);font-size:13px;margin:0 0 12px">One search for sprites, 3D models, textures, UI, music and sound across five asset sites. Compare licence terms and keep your project credits.</p>
+  <div class="searchwrap">
+    <span class="ico" aria-hidden="true">⌕</span>
+    <input id="q" type="search" autocomplete="off" spellcheck="false"
+           aria-label="Search assets"
+           placeholder="Search game assets — barrel, dungeon, rusty metal…">
+    <span class="kbd" id="kbdhint"><b>/</b> search <b>j k</b> move <b>a</b> add</span>
+    <button id="clearq" aria-label="Clear search" title="Clear (Esc)">✕</button>
+  </div>
+
+  <div class="toolbar">
+    <div class="seg" role="group" aria-label="Licence usability">
+      <button data-use="any"        aria-pressed="true">Anything</button>
+      <button data-use="commercial" aria-pressed="false">Commercial · review terms</button>
+      <button data-use="nocredit"   aria-pressed="false">CC0 · no credit</button>
+    </div>
+    <span class="spacer"></span>
+    <label class="sr" for="sort">Sort</label>
+    <select id="sort">
+      <option value="rel">Best match</option>
+      <option value="pop">Most popular</option>
+      <option value="new">Newest</option>
+      <option value="az">A–Z</option>
+    </select>
+  </div>
+
+  <div id="chips"></div>
+</header>
+
+<div class="layout">
+  <aside>
+    <div class="card">
+      <h2>Type</h2>       <div id="f-ty"></div>
+      <h2>Style</h2>      <div id="f-st"></div>
+      <h2>Licence</h2>    <div id="f-l"></div>
+      <h2>Refine</h2>     <div id="f-tag"></div>
+    </div>
+
+    <div class="card">
+      <h2>Sites we index</h2>
+      <div id="sources"></div>
+    </div>
+
+    <div class="card">
+      <h2>Index health</h2>
+      <div id="health"></div>
+    </div>
+  </aside>
+
+  <main>
+    <div id="status" role="status" aria-live="polite">Loading the index…</div>
+    <div id="results"></div>
+    <button id="more" hidden></button>
+  </main>
+</div>
+
+<footer style="padding:20px 20px 90px;color:var(--dim);font-size:12px">
+  Magpie indexes metadata and links to the original asset sites. Review source terms before using an asset.
+  <a href="https://github.com/unexpear/magpie" target="_blank" rel="noopener">Source code</a> ·
+  <a href="https://github.com/unexpear/magpie/issues" target="_blank" rel="noopener">Report a problem</a>
+</footer>
+
+<div id="tray" role="region" aria-label="Credits list">
+  <span class="lead" id="traycount">0 assets</span>
+  <span class="sub" id="traysub"></span>
+  <span class="spacer"></span>
+  <button class="btn" id="projectexport">Back up project</button>
+  <button class="btn" id="trayclear">Clear</button>
+  <button class="btn primary" id="trayopen">Build credits file</button>
+</div>
+
+<dialog id="detail" aria-labelledby="dtitle">
+  <div class="dlg-head">
+    <h3 id="dtitle"></h3>
+    <span class="spacer"></span>
+    <button class="btn" id="dclose" aria-label="Close">✕</button>
+  </div>
+  <div class="dlg-body" id="dbody"></div>
+  <div class="dlg-foot">
+    <a class="btn primary" id="dopen" target="_blank" rel="noopener">Open on source ↗</a>
+    <button class="btn" id="dpick"></button>
+    <span class="spacer"></span>
+    <span class="sub" style="color:var(--faint)">Esc to close</span>
+  </div>
+</dialog>
+
+<dialog id="dlg" aria-labelledby="dlgtitle">
+  <div class="dlg-head">
+    <h3 id="dlgtitle">Credits</h3>
+    <span class="spacer"></span>
+    <button class="btn" id="dlgclose" aria-label="Close">✕</button>
+  </div>
+  <div class="dlg-body">
+    <p id="dlgnote"></p>
+    <div id="creditchanges"></div>
+    <label class="sr" for="credits">Credits text</label>
+    <textarea id="credits" readonly spellcheck="false"></textarea>
+  </div>
+  <div class="dlg-foot">
+    <button class="btn primary" id="copy">Copy to clipboard</button>
+    <button class="btn" id="download">Download CREDITS.md</button>
+    <span class="sub" id="copied" style="color:var(--ok)"></span>
+  </div>
+</dialog>
+
+<script src="model.js"></script>
+<script>
+"use strict";
+const $ = s => document.querySelector(s);
+const PAGE = 48;
+const LS_KEY = "magpie.basket.v1";
+
+const LIC = {
+  cc0:      { label:"CC0",       credit:false, name:"CC0 1.0" },
+  cc_by:    { label:"CC-BY",     credit:true,  name:"CC BY" },
+  cc_by_sa: { label:"CC-BY-SA",  credit:true,  name:"CC BY-SA" },
+  oga_by:   { label:"OGA-BY",    credit:true,  name:"OGA-BY" },
+  gpl:      { label:"GPL",       credit:true,  name:"GPL" },
+  store_eula:{label:"Store EULA",credit:true,  name:"store EULA" },
+  personal_only:{label:"Personal only",credit:true,name:"personal use only"},
+  unknown:  { label:"Unknown",   credit:true,  name:"unknown licence" },
+};
+const licName = k => (LIC[k] || {}).label || k;
+
+let DATA = null;
+let view = [];
+let shown = 0;
+let byId = new Map(), byURL = new Map();
+let basket = new Map();   // url -> asset
+
+const state = {
+  q:"", use:"any", ty:"", st:"", l:"", s:"", sort:"rel",
+  /* Multiple, ANDed. "isometric" and "animated" is a question you actually
+     want to ask, and a single-select facet cannot express it. */
+  tags: [],
+};
+
+/* Tags that merely restate a facet we already show as its own control. */
+const FACET_TAGS = new Set([
+  "2d_sprite","3d_model","texture","audio","music","font","shader","vfx","ui",
+  "pixel","lowpoly","pbr","handpainted","flat","voxel","unclassifiable",
+]);
+
+const esc = s => (s == null ? "" : String(s).replace(/[&<>"]/g,
+  c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c])));
+
+/* ---------------- boot ---------------- */
+
+$("#results").innerHTML = Array.from({length:8},
+  () => '<div class="skeleton"></div>').join("");
+
+restoreBasket();
+readURL();
+
+fetch("data.json")
+  .then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+  .then(d => { DATA = Magpie.validateIndex(d); DATA.assets=DATA.assets.map(Magpie.prepare); boot(); })
+  .catch(e => {
+    $("#results").innerHTML = "";
+    $("#status").innerHTML =
+      `<div class="empty"><h3>No index yet</h3>
+       Could not load <code>data.json</code> (${esc(e.message)}).<br>
+       Run <code>magpie export</code>, then reload.</div>`;
+  });
+
+function boot(){
+  byId = new Map(DATA.assets.filter(a=>a.id).map(a=>[a.id,a]));
+  byURL = new Map(DATA.assets.map(a=>[a.u,a]));
+  $("#q").value = state.q;
+  $("#sort").value = state.sort;
+  syncSeg();
+  renderSources();
+  renderHealth();
+  wire();
+  run();
+}
+
+function wire(){
+  $("#projectexport").addEventListener("click",()=>downloadFile(Magpie.project(basket.values()),"magpie-project.json","application/json"));
+  $("#projectimport").addEventListener("click",()=>$("#projectfile").click());
+  $("#projectfile").addEventListener("change",async e=>{
+    try {
+      const file=e.target.files[0]; if(!file) return;
+      if(file.size>20*1024*1024) throw new Error("Project backup is too large");
+      const items=Magpie.readProject(await file.text());
+      const next=new Map(basket);
+      for(const a of items) {
+        const existing=[...next.values()].find(b=>(a.id && b.id===a.id) || b.u===a.u);
+        if(!existing) next.set(a.u,a);
+      }
+      basket=next; saveBasket(); renderTray(); markPicked();
+      $("#projectnote").textContent="Project imported; existing saved records were kept.";
+    } catch(error) { $("#projectnote").textContent=error.message; }
+    e.target.value="";
+  });
+  let t;
+  $("#q").addEventListener("input", () => {
+    clearTimeout(t);
+    t = setTimeout(() => { state.q = $("#q").value; run(); }, 110);
+    $("#clearq").style.display = $("#q").value ? "block" : "none";
+    $("#kbdhint").style.display = $("#q").value ? "none" : "flex";
+  });
+  $("#clearq").addEventListener("click", clearQuery);
+
+  document.querySelectorAll(".seg button").forEach(b =>
+    b.addEventListener("click", () => { state.use = b.dataset.use; syncSeg(); run(); }));
+
+  $("#sort").addEventListener("change", () => { state.sort = $("#sort").value; run(); });
+  $("#more").addEventListener("click", () => draw(true));
+
+  $("#trayclear").addEventListener("click", () => {
+    basket.clear(); saveBasket(); renderTray(); markPicked();
+  });
+  $("#trayopen").addEventListener("click", openCredits);
+  $("#dlgclose").addEventListener("click", () => $("#dlg").close());
+  $("#copy").addEventListener("click", copyCredits);
+  $("#download").addEventListener("click", downloadCredits);
+
+  $("#dclose").addEventListener("click", () => $("#detail").close());
+  $("#dpick").addEventListener("click", () => detailAsset && togglePick(detailAsset.u));
+
+  document.addEventListener("keydown", e => {
+    if(document.querySelector("dialog[open]")) return;
+    const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
+
+    if (e.key === "/" && !typing) {
+      e.preventDefault(); $("#q").focus(); $("#q").select();
+      return;
+    }
+    if (e.key === "Escape" && document.activeElement === $("#q")) { clearQuery(); return; }
+    if (typing || e.metaKey || e.ctrlKey || e.altKey) return;
+
+    // j/k and arrows walk the grid; a adds the focused card to credits.
+    if (e.key === "j" || e.key === "ArrowDown") { e.preventDefault(); moveCursor(1); }
+    else if (e.key === "k" || e.key === "ArrowUp") { e.preventDefault(); moveCursor(-1); }
+    else if (e.key === "a") {
+      const el = document.querySelector(".hit.cursor") ||
+                 document.activeElement.closest?.(".hit");
+      if (el) { e.preventDefault(); togglePick(el.dataset.u); }
+    }
+  });
+}
+
+function clearQuery(){
+  $("#q").value = ""; state.q = "";
+  $("#clearq").style.display = "none";
+  $("#kbdhint").style.display = "flex";
+  $("#q").focus(); run();
+}
+
+function syncSeg(){
+  document.querySelectorAll(".seg button").forEach(b =>
+    b.setAttribute("aria-pressed", String(b.dataset.use === state.use)));
+}
+
+/* ---------------- URL state ----------------
+   Filters live in the querystring so a search is shareable and survives a
+   reload. "All the CC0 low-poly barrels" should be a link you can send. */
+
+function readURL(){
+  const p = new URLSearchParams(location.search);
+  state.q    = p.get("q")    || "";
+  state.use  = p.get("use")  || "any";
+  state.ty   = p.get("type") || "";
+  state.st   = p.get("style")|| "";
+  state.l    = p.get("lic")  || "";
+  state.s    = p.get("src")  || "";
+  state.tags = (p.get("tag") || "").split(",").filter(Boolean);
+  state.sort = p.get("sort") || "rel";
+}
+
+function writeURL(){
+  const p = new URLSearchParams();
+  if (state.q)            p.set("q", state.q);
+  if (state.use !== "any")p.set("use", state.use);
+  if (state.ty)           p.set("type", state.ty);
+  if (state.st)           p.set("style", state.st);
+  if (state.l)            p.set("lic", state.l);
+  if (state.s)            p.set("src", state.s);
+  if (state.tags.length)  p.set("tag", state.tags.join(","));
+  if (state.sort !== "rel") p.set("sort", state.sort);
+  const qs = p.toString();
+  history.replaceState(null, "", qs ? "?" + qs : location.pathname);
+}
+
+/* ---------------- filtering ---------------- */
+
+const matchesUse = a =>
+  state.use === "any" ? true :
+  state.use === "commercial" ? !!a.c : (!!a.c && !!a.n);
+
+const hay = a => a._h || (a._h =
+  (a.t + " " + (a.tg||"") + " " + (a.tga||"") + " " + (a.a||"") + " " + a.s).toLowerCase());
+
+/* Apply every filter except one dimension — used for facet counts, so the
+   number beside "3d_model" is how many you'd get if you clicked it, not a
+   figure from an unfiltered index. Facet counts that ignore current state are
+   how you end up clicking into an empty result set. */
+/* Tags come from two places and the difference matters for trust, not for
+   filtering: a search for "tileset" doesn't care who said it, but a user
+   deciding whether to believe it does. */
+const allTags = a => a._t ||
+  (a._t = new Set([...(a.tg||"").split(","), ...(a.tga||"").split(",")].filter(Boolean)));
+const hasTag = (a, t) => allTags(a).has(t);
+const isMined = (a, t) => !((a.tg||"").split(",").includes(t));
+
+let queryCandidates=[], subsetCache=new Map();
+function subset(except){
+  if(subsetCache.has(except)) return subsetCache.get(except);
+  const result = queryCandidates.filter(a =>
+    (except === "use" || matchesUse(a)) &&
+    (except === "ty"  || !state.ty || a.ty === state.ty) &&
+    (except === "st"  || !state.st || a.st === state.st) &&
+    (except === "l"   || !state.l  || a.l  === state.l ) &&
+    (except === "s"   || !state.s  || a.s  === state.s ) &&
+    (except === "tag" || state.tags.every(t => hasTag(a, t))));
+  subsetCache.set(except,result);
+  return result;
+}
+
+function score(a, terms){
+  let s = 0;
+  const t = a.t.toLowerCase(), tags = (a.tg||"").toLowerCase();
+  for (const w of terms){
+    if (t === w)              s += 70;
+    else if (t.startsWith(w)) s += 34;
+    else if (t.includes(w))   s += 20;
+    if (tags.includes(w))     s += 11;
+    if ((a.a||"").toLowerCase().includes(w)) s += 5;
+  }
+  s += (a.p || 0) * 0.12;              // popularity percentile
+  if (a.l === "cc0") s += 6;           // permissive first
+  else if (a.n)      s += 2;
+  if (a.th)          s += 2;           // a result you can see is a better result
+  if (a.ty === "unclassifiable") s -= 7;
+  return s;
+}
+
+function run(){
+  writeURL();
+  const terms = state.q.toLowerCase().split(/\s+/).filter(Boolean);
+  queryCandidates=DATA.assets.filter(a=>terms.every(w=>hay(a).includes(w)));
+  subsetCache=new Map();
+  let out = subset(null).slice();
+
+  if (state.sort === "az")       out.sort((x,y) => x.t.localeCompare(y.t));
+  else if (state.sort === "pop") out.sort((x,y) => (y.p||0) - (x.p||0));
+  else if (state.sort === "new") out.sort((x,y) => (y.up||0) - (x.up||0));
+  else if (terms.length) {
+    const ranked=out.map(a=>({a,score:score(a,terms)}));
+    ranked.sort((x,y)=>y.score-x.score);
+    out=ranked.map(row=>row.a);
+  }
+  else                           out.sort((x,y) => (y.p||0) - (x.p||0));
+
+  view = out; shown = 0;
+  $("#results").innerHTML = "";
+  draw(false);
+  renderChips();
+  renderFacets();
+  renderTray();
+
+  const n = out.length;
+  $("#brandcount").textContent = DATA.assets.length.toLocaleString() + " indexed";
+  $("#status").innerHTML = n
+    ? `<b>${n.toLocaleString()}</b> asset${n===1?"":"s"}` +
+      (state.use === "nocredit" ? " under CC0 — check source details"
+       : state.use === "commercial" ? " matching the commercial filter — review licence terms" : "")
+    : "";
+  if (!n) renderEmpty();
+}
+
+/* ---------------- rendering ---------------- */
+
+function draw(append){
+  if (!append) shown = 0;
+  const slice = view.slice(shown, shown + PAGE);
+  shown += slice.length;
+  $("#results").insertAdjacentHTML("beforeend", slice.map(card).join(""));
+  bindCards();
+  const left = view.length - shown;
+  $("#more").hidden = left <= 0;
+  $("#more").textContent = `Show ${Math.min(left, PAGE)} more (${left.toLocaleString()} left)`;
+}
+
+/* Artwork with edges is shown whole on a checkerboard; things that tile or
+   fill a frame are cropped. Audio has no preview anywhere, so 1,700 rows used
+   to render an identical grey box — a type glyph at least tells them apart. */
+const CONTAIN = new Set(["2d_sprite","ui","font","vfx"]);
+const GLYPH   = { audio:"♪", music:"♫", font:"A", shader:"◈", vfx:"✦",
+                  "3d_model":"◰", texture:"▦", ui:"▭", "2d_sprite":"▧" };
+
+function thumbHTML(a){
+  const cls = ["thumb"];
+  if (CONTAIN.has(a.ty)) cls.push("contain");
+  // Pixel art must not be interpolated: smoothing shows an asset you would
+  // never actually ship.
+  if (a.st === "pixel") cls.push("pixel");
+
+  if (!a.th)
+    return `<div class="thumb none"><span class="glyph">${
+      esc(GLYPH[a.ty] || "◦")}</span>${esc(a.ty === "audio" || a.ty === "music"
+        ? "listen on source" : "no preview")}</div>`;
+
+  /* referrerpolicy=no-referrer: some sources reject cross-origin image
+     requests that carry a Referer (Kenney's CDN serves 200 to a plain fetch
+     and nothing to a browser). It also avoids telling every source what page
+     someone is browsing. decoding=async keeps a grid of large PNGs off the
+     main thread. */
+  return `<img class="${cls.join(" ")}" loading="lazy" decoding="async"
+       referrerpolicy="no-referrer" src="${esc(a.th)}" alt=""
+       onerror="this.replaceWith(Object.assign(document.createElement('div'),
+                {className:'thumb none',textContent:'preview unavailable'}))">`;
+}
+
+function card(a){
+  const picked = isPicked(a.u);
+  const b = [];
+  b.push(a.c ? '<span class="b ok">commercial ok</span>'
+             : '<span class="b bad">review commercial terms</span>');
+  b.push(a.n ? '<span class="b ok">no credit</span>'
+             : '<span class="b warn">credit required</span>');
+  b.push(`<span class="b">${esc(licName(a.l))}</span>`);
+  if(a.l==="cc_by_sa") b.push('<span class="b warn">ShareAlike</span>');
+  if(a.l==="gpl") b.push('<span class="b warn">copyleft terms</span>');
+  if (a.ty && a.ty !== "unclassifiable") b.push(`<span class="b">${esc(a.ty)}</span>`);
+  if (a.st && a.st !== "unclassifiable" && a.st !== "unknown")
+    b.push(`<span class="b">${esc(a.st)}</span>`);
+  if (a.ty === "unclassifiable") b.push('<span class="b warn">unclassified</span>');
+  // Credit required but we have no name to credit — the attribution is
+  // unusable as-is, and the user needs to know that before relying on it.
+  if (!a.n && !a.a) b.push('<span class="b bad">author unknown</span>');
+
+  return `<div class="hit${picked?" picked":""}" data-u="${esc(a.u)}"
+               tabindex="0" role="button" aria-label="${esc(a.t)} — details">
+    ${thumbHTML(a)}
+    <div class="body">
+      <div class="t"><a href="${esc(a.u)}" target="_blank" rel="noopener">${esc(a.t)}</a></div>
+      <div class="meta">${esc(a.s)}${a.a ? " · " + esc(a.a) : ""}${
+        a.pc ? " · " + a.pc.toLocaleString() + " tris" : ""}</div>
+      <div class="badges">${b.join("")}</div>
+      <button class="pick-btn" data-pick="${esc(a.u)}">
+        ${picked ? "✓ in credits" : "+ add to credits"}
+      </button>
+    </div></div>`;
+}
+
+function savedKey(u){
+  const current=byURL.get(u);
+  if(basket.has(u)) return u;
+  if(current?.id) for(const [key,a] of basket) if(a.id===current.id) return key;
+  return null;
+}
+function isPicked(u){ return savedKey(u)!==null; }
+function togglePick(u){
+  const key=savedKey(u);
+  if (key!==null) basket.delete(key);
+  else {
+    const a = byURL.get(u);
+    if (a) basket.set(u, {...Magpie.asset(a),saved_at:Date.now(),history:[]});
+  }
+  saveBasket(); renderTray(); markPicked();
+  if ($("#detail").open) syncDetailButton();
+}
+
+function bindCards(){
+  document.querySelectorAll("[data-pick]").forEach(btn => {
+    if (btn._wired) return;
+    btn._wired = true;
+    btn.addEventListener("click", e => { e.stopPropagation(); togglePick(btn.dataset.pick); });
+  });
+
+  document.querySelectorAll(".hit").forEach(el => {
+    if (el._wired) return;
+    el._wired = true;
+    // The title is still a plain link out; clicking anywhere else opens the
+    // detail view rather than dumping you on another site mid-comparison.
+    el.addEventListener("click", e => {
+      if (e.target.closest("a,button")) return;
+      openDetail(el.dataset.u);
+    });
+    el.addEventListener("keydown", e => {
+      if (e.target===el && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); openDetail(el.dataset.u); }
+    });
+  });
+}
+
+function moveCursor(delta){
+  const cards = [...document.querySelectorAll(".hit")];
+  if (!cards.length) return;
+  const cur = cards.findIndex(c => c.classList.contains("cursor"));
+  let next = cur < 0 ? (delta > 0 ? 0 : cards.length - 1) : cur + delta;
+  if (next < 0) next = 0;
+  if (next >= cards.length) {
+    // Walking off the end pulls in the next page rather than dead-ending.
+    if (!$("#more").hidden) { draw(true); return moveCursor(delta); }
+    next = cards.length - 1;
+  }
+  cards.forEach(c => c.classList.remove("cursor"));
+  cards[next].classList.add("cursor");
+  cards[next].focus({ preventScroll: true });
+  cards[next].scrollIntoView({ block: "nearest" });
+}
+
+function markPicked(){
+  document.querySelectorAll(".hit").forEach(el => {
+    const on = isPicked(el.dataset.u);
+    el.classList.toggle("picked", on);
+    const b = el.querySelector(".pick-btn");
+    if (b) b.textContent = on ? "✓ in credits" : "+ add to credits";
+  });
+}
+
+function renderEmpty(){
+  // Name the filter most likely to blame instead of a bare "no results".
+  const tries = [
+    ["use", state.use !== "any", "the licence filter"],
+    ["ty",  !!state.ty,  `type “${state.ty}”`],
+    ["st",  !!state.st,  `style “${state.st}”`],
+    ["l",   !!state.l,   `licence “${licName(state.l)}”`],
+    ["s",   !!state.s,   `source “${state.s}”`],
+    ["tag", !!state.tags.length,
+            state.tags.length === 1 ? `tag “${state.tags[0]}”`
+                                    : `${state.tags.length} tag filters`],
+  ].filter(x => x[1]);
+
+  let best = null, bestN = 0;
+  for (const [key,,label] of tries){
+    const n = subset(key).length;
+    if (n > bestN) { bestN = n; best = { key, label, n }; }
+  }
+
+  $("#results").innerHTML = `<div class="empty" style="grid-column:1/-1">
+    <h3>No matches</h3>
+    ${state.q ? `Nothing matches “${esc(state.q)}” with these filters.`
+              : "Nothing matches these filters."}
+    ${best ? `<div style="margin-top:9px">Dropping ${esc(best.label)} would give
+       <b>${best.n.toLocaleString()}</b> result${best.n===1?"":"s"}.</div>
+       <button data-drop="${best.key}">Drop ${esc(best.label)}</button>` : ""}
+  </div>`;
+
+  const btn = $("#results button[data-drop]");
+  if (btn) btn.addEventListener("click", () => {
+    const k = btn.dataset.drop;
+    if (k === "use") state.use = "any";
+    else if (k === "tag") state.tags = [];
+    else state[k] = "";
+    syncSeg(); run();
+  });
+}
+
+function renderChips(){
+  const c = [];
+  const chip = (key, label, val) =>
+    `<span class="chip"><b>${esc(label)}</b> ${esc(val)}
+      <button data-chip="${key}" aria-label="Remove ${esc(label)} filter">✕</button></span>`;
+
+  if (state.use === "commercial") c.push(chip("use","licence","can ship commercially"));
+  if (state.use === "nocredit")   c.push(chip("use","licence","no credit needed"));
+  if (state.ty) c.push(chip("ty","type",  state.ty));
+  if (state.st) c.push(chip("st","style", state.st));
+  if (state.l)  c.push(chip("l","licence",licName(state.l)));
+  if (state.s)  c.push(chip("s","source", state.s));
+  state.tags.forEach(t => c.push(
+    `<span class="chip"><b>tag</b> ${esc(t)}
+      <button data-untag="${esc(t)}" aria-label="Remove tag ${esc(t)}">✕</button></span>`));
+  if (c.length > 1) c.push('<span class="chip clear" data-chip="all">clear all</span>');
+
+  $("#chips").innerHTML = c.join("");
+  $("#chips").querySelectorAll("[data-chip]").forEach(el =>
+    el.addEventListener("click", () => {
+      const k = el.dataset.chip;
+      if (k === "all") {
+        state.use = "any"; state.ty = state.st = state.l = state.s = "";
+        state.tags = [];
+      }
+      else if (k === "use") state.use = "any";
+      else state[k] = "";
+      syncSeg(); run();
+    }));
+  $("#chips").querySelectorAll("[data-untag]").forEach(el =>
+    el.addEventListener("click", () => {
+      state.tags = state.tags.filter(t => t !== el.dataset.untag);
+      run();
+    }));
+}
+
+function facetCounts(key, field){
+  const m = new Map();
+  for (const a of subset(key)) m.set(a[field], (m.get(a[field]) || 0) + 1);
+  return [...m].sort((x,y) => y[1] - x[1]);
+}
+
+function renderFacet(el, key, field, pairs){
+  const cur = state[key];
+  el.innerHTML = pairs.map(([v,n]) => `
+    <label class="opt">
+      <input type="radio" name="f-${key}" value="${esc(v)}" ${v===cur?"checked":""}>
+      <span>${esc(field === "l" ? licName(v) : v)}</span>
+      <span class="n">${n.toLocaleString()}</span>
+    </label>`).join("") +
+    (cur ? `<label class="opt"><input type="radio" name="f-${key}" value="">
+            <span style="color:var(--dim)">any</span></label>` : "");
+
+  el.querySelectorAll("input").forEach(inp =>
+    inp.addEventListener("change", () => { state[key] = inp.value; run(); }));
+}
+
+/* "Refine" — the most common tags inside the *current* result set, minus the
+ * ones that just restate a control already on screen. Most of these are mined
+ * from titles (tileset, isometric, animated, 16x16, lpc), which is the only
+ * structure the 2D assets have: their sources publish no tags at all. */
+function renderTagFacet(){
+  /* Counts are computed with the *other* tags still applied, so each number is
+     "how many would remain if I also picked this" — the useful question when
+     narrowing, rather than a headline count you cannot reach. */
+  const base = subset("tag").filter(a => state.tags.every(t => hasTag(a, t)));
+  const counts = new Map(), mined = new Map();
+  for (const a of base)
+    for (const t of allTags(a)) {
+      if (FACET_TAGS.has(t) || state.tags.includes(t)) continue;
+      counts.set(t, (counts.get(t)||0) + 1);
+      if (isMined(a, t)) mined.set(t, (mined.get(t)||0) + 1);
+    }
+
+  const top = [...counts].sort((x,y) => y[1]-x[1]).slice(0, 14);
+  const el  = $("#f-tag");
+
+  const dotFor = t => (mined.get(t)||0) > (counts.get(t)||0) / 2
+    ? ` <span title="mostly inferred from titles by Magpie, not published by the source"
+             style="color:var(--warn)">•</span>` : "";
+
+  const chosen = state.tags.map(t => `
+    <label class="opt">
+      <input type="checkbox" data-tag="${esc(t)}" checked>
+      <span>${esc(t)}</span><span class="n">✓</span>
+    </label>`).join("");
+
+  const rest = top.map(([t,n]) => `
+    <label class="opt">
+      <input type="checkbox" data-tag="${esc(t)}">
+      <span>${esc(t)}${dotFor(t)}</span><span class="n">${n.toLocaleString()}</span>
+    </label>`).join("");
+
+  el.innerHTML = (chosen + rest) ||
+    '<span class="n">nothing left to narrow by</span>';
+
+  el.querySelectorAll("input[data-tag]").forEach(i =>
+    i.addEventListener("change", () => {
+      const t = i.dataset.tag;
+      state.tags = i.checked ? [...state.tags, t] : state.tags.filter(x => x !== t);
+      run();
+    }));
+}
+
+function renderFacets(){
+  renderFacet($("#f-ty"), "ty", "ty", facetCounts("ty","ty"));
+  renderFacet($("#f-st"), "st", "st", facetCounts("st","st"));
+  renderFacet($("#f-l"),  "l",  "l",  facetCounts("l","l"));
+  renderTagFacet();
+}
+
+function dateLabel(seconds){ return seconds ? new Date(seconds*1000).toISOString().slice(0,10) : "not recorded"; }
+function renderSources(){
+  $("#sources").innerHTML = DATA.sources.map(s => `
+    <div class="srcrow">
+      <div>
+        <button class="pick" data-src="${esc(s.name)}">${esc(s.name)}</button>
+        <small>${s.commercial.toLocaleString()} usable${
+          s.dead ? ` · ${s.dead} dead` : ""} ·
+          <a href="${esc(s.site||"#")}" target="_blank" rel="noopener">site ↗</a></small>
+      </div>
+      <span class="n">${s.assets.toLocaleString()}</span>
+      <small>Last seen: ${dateLabel(s.last_seen)} · last complete crawl: ${dateLabel(s.last_success)}<br>
+      Latest attempt: ${dateLabel(s.last_attempt)} · ${["completion not recorded","running or interrupted","complete","incomplete"][s.crawl_state||0]}<br>
+      ${s.source_tagged ?? "?"} tagged · ${s.missing_authors ?? "?"} missing required authors</small>
+    </div>`).join("");
+
+  $("#sources").querySelectorAll("[data-src]").forEach(b =>
+    b.addEventListener("click", () => {
+      state.s = state.s === b.dataset.src ? "" : b.dataset.src;
+      run();
+    }));
+}
+
+function renderHealth(){
+  const s = DATA.stats;
+  const styleUnc = DATA.assets.filter(a => a.st === "unclassifiable").length;
+  const row = (k,v,title) =>
+    `<div class="stat" ${title?`title="${esc(title)}"`:""}><span>${k}</span>
+     <span class="n">${v}</span></div>`;
+  $("#health").innerHTML =
+    row("assets", s.total.toLocaleString()) +
+    row("commercial filter eligible", s.commercial.toLocaleString()) +
+    row("no credit needed", s.nocredit.toLocaleString()) +
+    row("tagged by the source", (s.source_tagged ?? 0).toLocaleString(),
+        "Tags the site itself published") +
+    row("tags mined by us", (s.auto_only ?? 0).toLocaleString(),
+        "Rows whose only tags were inferred from their title") +
+    row("type unclassified", s.unclassifiable.toLocaleString(),
+        "The classifier looked and the source data was not enough") +
+    row("style unclassified", styleUnc.toLocaleString(),
+        "Mostly OpenGameArt rows that have not been enriched yet") +
+    row("dead links", s.dead.toLocaleString()) +
+    row("never checked", s.unchecked.toLocaleString(),
+        "magpie check has not reached these URLs yet") +
+    `<div class="stat" style="margin-top:6px"><small style="color:var(--faint)">
+      Export generated ${dateLabel(DATA.generated)} · source dates shown above</small></div>`;
+}
+
+/* ---------------- detail view ---------------- */
+
+let detailAsset = null;
+
+function syncDetailButton(){
+  const inBasket = detailAsset && isPicked(detailAsset.u);
+  $("#dpick").textContent = inBasket ? "✓ in credits" : "+ add to credits";
+}
+
+function openDetail(u){
+  const a = byURL.get(u);
+  if (!a) return;
+  detailAsset = a;
+
+  const src   = (a.tg  || "").split(",").filter(Boolean);
+  const auto  = (a.tga || "").split(",").filter(Boolean);
+  const tagBtns = (list, mined) => list.map(t =>
+    `<button data-addtag="${esc(t)}" class="${mined?"mined":""}"
+       title="${mined ? "inferred by Magpie from the title"
+                      : "published by " + esc(a.s)}">${esc(t)}</button>`).join("");
+
+  const row = (k, v) => v ? `<dt>${k}</dt><dd>${v}</dd>` : "";
+
+  $("#dtitle").textContent = a.t;
+  $("#dopen").href = a.u;
+  $("#dbody").innerHTML = `
+    <div class="shot">${thumbHTML(a)}</div>
+    <div class="facts">
+      <dl>
+        ${row("Source",  `${esc(a.s)}`)}
+        ${row("Author",  a.a ? esc(a.a)
+              : (a.n ? "<span style='color:var(--dim)'>not recorded</span>"
+                     : "<span style='color:var(--bad)'>not recorded — required for this licence</span>"))}
+        ${row("Licence", `${esc(licName(a.l))}${a.lu
+              ? ` · <a href="${esc(a.lu)}" target="_blank" rel="noopener">terms ↗</a>` : ""}`)}
+        ${row("Use",     a.c ? (a.n ? "commercial, no credit needed"
+                                    : "commercial, credit required")
+                             : "<span style='color:var(--bad)'>not cleared for commercial use</span>")}
+        ${row("Obligations", esc(Magpie.obligations(a)))}
+        ${row("Source seen", dateLabel(a.seen))}
+        ${row("Link checked", dateLabel(a.checked))}
+        ${row("Type",    esc(a.ty))}
+        ${row("Style",   a.st && a.st !== "unclassifiable" ? esc(a.st) : "")}
+        ${row("Formats", a.f ? esc(a.f) : "")}
+        ${row("Triangles", a.pc ? a.pc.toLocaleString() : "")}
+        ${row("Popularity", a.p ? a.p + "%" : "")}
+      </dl>
+      ${src.length ? `<div style="margin-top:11px"><dt style="color:var(--dim);font-size:12px">
+        Tags from ${esc(a.s)}</dt><div class="taglist">${tagBtns(src, false)}</div></div>` : ""}
+      ${auto.length ? `<div style="margin-top:9px"><dt style="color:var(--dim);font-size:12px">
+        Inferred by Magpie</dt><div class="taglist">${tagBtns(auto, true)}</div>
+        <div class="hint">Dashed tags were read off the title, not published by the source.</div>
+        </div>` : ""}
+    </div>`;
+
+  $("#dbody").querySelectorAll("[data-addtag]").forEach(b =>
+    b.addEventListener("click", () => {
+      const t = b.dataset.addtag;
+      if (!state.tags.includes(t)) state.tags.push(t);
+      $("#detail").close();
+      run();
+    }));
+
+  syncDetailButton();
+  $("#detail").showModal();
+}
+
+/* ---------------- credits basket ----------------
+   The bit no other asset site does. You collect CC-BY assets over weeks, and
+   at ship time you have to produce an accurate credits file. Reconstructing
+   that from browser history is how attribution silently gets skipped. */
+
+function saveBasket(){
+  try { localStorage.setItem(LS_KEY, JSON.stringify([...basket.values()])); }
+  catch { $("#projectnote").textContent="Browser storage unavailable. Back up this project before closing."; }
+}
+
+function restoreBasket(){
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw) for (const a of Magpie.readProject(raw)) basket.set(a.u, a);
+  } catch { $("#projectnote").textContent="Saved project could not be read; import a backup to recover it."; }
+}
+
+function renderTray(){
+  const n = basket.size;
+  $("#tray").classList.toggle("on", n > 0);
+  if (!n) return;
+  const needList = [...basket.values()].filter(a => !a.n);
+  const noName = needList.filter(a => !a.a).length;
+  $("#traycount").textContent = `${n} asset${n===1?"":"s"} in credits`;
+  $("#traysub").textContent = !needList.length
+    ? "none require attribution — CC0 throughout"
+    : `${needList.length} require attribution` +
+      (noName ? ` · ${noName} missing a creator name` : "");
+  const changes=[...basket.values()].filter(a=>Magpie.differences(a,currentAsset(a)).length).length;
+  if(changes) $("#traysub").textContent+=` · ${changes} saved records need review`;
+  $("#traysub").style.color = noName || changes ? "var(--warn)" : "";
+}
+
+function creditsText(){
+  const items = [...basket.values()].sort((a,b) =>
+    (a.s+a.t).localeCompare(b.s+b.t));
+  const need = items.filter(a => !a.n);
+  const free = items.filter(a => a.n);
+  const L = [];
+
+  L.push("# Credits", "");
+  L.push("Assets used in this project, gathered with Magpie.", "");
+
+  if (need.length){
+    const noName = need.filter(a => !a.a);
+    L.push("## Required attribution", "");
+    L.push("These licences require credit. Keep this section in the shipped build.", "");
+    if (noName.length)
+      L.push(`> ${noName.length} entr${noName.length===1?"y is":"ies are"} marked ` +
+             "**AUTHOR UNKNOWN**. Magpie has not read those asset pages yet, and an " +
+             "attribution line with no name does not satisfy the licence. Open each " +
+             "link and fill in the creator before you ship.", "");
+    for (const a of need){
+      L.push(`- **${a.t}** by ${a.a || "**AUTHOR UNKNOWN — open the link and fill this in**"} — ${licName(a.l)}`);
+      L.push(`  - ${a.u}`);
+      if (a.lu) L.push(`  - Licence: ${a.lu}`);
+      L.push(`  - Terms: ${Magpie.obligations(a)}`);
+      if(Magpie.differences(a,currentAsset(a)).length) L.push("  - Saved metadata differs from the current index; review this record.");
+    }
+    L.push("");
+  }
+  if (free.length){
+    L.push("## Public domain (CC0)", "");
+    L.push("No attribution required. Listed as a courtesy and for your own records.", "");
+    for (const a of free){
+      L.push(`- **${a.t}**${a.a ? ` by ${a.a}` : ""} — ${licName(a.l)}`);
+      L.push(`  - ${a.u}`);
+    }
+    L.push("");
+  }
+
+  const risky = items.filter(a => !a.c);
+  if (risky.length){
+    L.push("## ⚠ Check before shipping", "");
+    L.push("Magpie did not clear these for commercial use. Verify on the source page.", "");
+    for (const a of risky)
+      L.push(`- **${a.t}** — ${licName(a.l)} — ${a.u}`);
+    L.push("");
+  }
+
+  const unknown = items.filter(a => a.l === "unknown");
+  if (unknown.length)
+    L.push("> Some entries have an unknown licence. Confirm each one at its source " +
+           "before release — Magpie reports what the site published, and does not guess.", "");
+
+  const changed=items.filter(a=>Magpie.differences(a,currentAsset(a)).length);
+  if(changed.length){
+    L.push("## Saved records to review", "", "These credits retain the saved metadata. The current index differs:", "");
+    for(const a of changed) L.push(`- ${a.t}: ${Magpie.differences(a,currentAsset(a)).join(", ")} — ${a.u}`);
+    L.push("");
+  }
+  return L.join("\n");
+}
+
+function currentAsset(a){ return (a.id && byId.get(a.id)) || byURL.get(a.u); }
+function renderCreditChanges(){
+  const rows=[...basket.values()].map(old=>({old,current:currentAsset(old)}))
+    .filter(r=>Magpie.differences(r.old,r.current).length);
+  $("#creditchanges").innerHTML=rows.map(({old,current})=>`<div style="margin:12px 0">
+    <b>${esc(old.t)}</b>: ${esc(Magpie.differences(old,current).join(", "))}
+    ${current ? `<p>Saved: ${esc(old.a||"author missing")} · ${esc(licName(old.l))}<br>
+    Current: ${esc(current.a||"author missing")} · ${esc(licName(current.l))}</p>
+    <button class="btn" data-accept="${esc(old.u)}">Use current metadata; keep history</button>`
+    : "<p>The saved record is preserved. Check its source before use.</p>"}</div>`).join("");
+  $("#creditchanges").querySelectorAll("[data-accept]").forEach(button=>button.addEventListener("click",()=>{
+    const old=basket.get(button.dataset.accept), current=currentAsset(old);
+    basket.delete(old.u); basket.set(current.u,Magpie.accept(old,current));
+    saveBasket(); renderTray(); markPicked(); openCredits();
+  }));
+}
+
+function openCredits(){
+  // The tray hides itself when empty, but the basket can be emptied between
+  // render and click. Opening anyway printed "All 0 entries are CC0".
+  if (!basket.size) { renderTray(); return; }
+  const needList = [...basket.values()].filter(a => !a.n);
+  const need = needList.length;
+  const noName = needList.filter(a => !a.a).length;
+  $("#dlgnote").textContent = need
+    ? `${need} of ${basket.size} entries legally require attribution.` +
+      (noName ? ` ${noName} of those ${noName===1?"has":"have"} no creator recorded — fill ${noName===1?"it":"them"} in by hand before shipping.` : "")
+    : `All ${basket.size} entries are CC0 — no attribution is required, but keeping a record is good practice.`;
+  $("#dlgnote").style.color = noName ? "var(--warn)" : "";
+  renderCreditChanges();
+  $("#credits").value = creditsText();
+  $("#copied").textContent = "";
+  if(!$("#dlg").open) $("#dlg").showModal();
+}
+
+function copyCredits(){
+  const ta = $("#credits");
+  const done = () => { $("#copied").textContent = "Copied"; setTimeout(() => {
+    $("#copied").textContent = ""; }, 1800); };
+  if (navigator.clipboard && window.isSecureContext)
+    navigator.clipboard.writeText(ta.value).then(done, selectFallback);
+  else selectFallback();
+  function selectFallback(){ ta.removeAttribute("readonly"); ta.select();
+    try { document.execCommand("copy"); done(); } catch {}
+    ta.setAttribute("readonly",""); }
+}
+
+function downloadCredits(){ downloadFile(creditsText(),"CREDITS.md","text/markdown"); }
+function downloadFile(text,name,type){
+  const blob = new Blob([text], {type});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+# Local crawler state and machine-generated files are not public project files.
+*.log
+*.tmp
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+.env
+.env.*
+!.env.example
+__pycache__/
+node_modules/
+crawl/build/
+crawl/vendor/
+crawl/output/
+crawl/magpie
+crawl/magpie.exe
+crawl/runner/state.json
+crawl/runner/status.json
+crawl/runner/STOP
+.DS_Store
+Thumbs.db

@@ -1,0 +1,464 @@
+{
+  "_comment": "Curated Kenney pack list. See decisions.md D3.",
+  "_validated": "thumbnails from kenney.nl listing (-400x variants)",
+  "packs": [
+    {
+      "slug": "1-bit-pack",
+      "name": "1-Bit Pack",
+      "style": "pixel",
+      "thumb": "https://kenney.nl/media/pages/assets/1-bit-pack/263abe0f15-1677578508/sample_fantasy-400x.png"
+    },
+    {
+      "slug": "abstract-platformer",
+      "name": "Abstract Platformer",
+      "thumb": "https://kenney.nl/media/pages/assets/abstract-platformer/c345a6a674-1677579168/sample-400x.png"
+    },
+    {
+      "slug": "alien-ufo-pack",
+      "name": "Alien UFO Pack",
+      "thumb": "https://kenney.nl/media/pages/assets/alien-ufo-pack/ead33b4106-1677667394/sample-400x.png"
+    },
+    {
+      "slug": "background-elements",
+      "name": "Background Elements",
+      "thumb": "https://kenney.nl/media/pages/assets/background-elements/9432bf6d7b-1677670389/sample-400x.png"
+    },
+    {
+      "slug": "blocky-characters",
+      "name": "Blocky Characters",
+      "type": "3d_model",
+      "thumb": "https://kenney.nl/media/pages/assets/blocky-characters/4ace046751-1749547441/preview-400x.png"
+    },
+    {
+      "slug": "board-game-icons",
+      "name": "Board Game Icons",
+      "type": "ui",
+      "thumb": "https://kenney.nl/media/pages/assets/board-game-icons/d5c5bd2f28-1674933139/preview-400x.png"
+    },
+    {
+      "slug": "car-kit",
+      "name": "Car Kit",
+      "type": "3d_model",
+      "thumb": "https://kenney.nl/media/pages/assets/car-kit/81f9d77bc7-1775131953/preview-400x.png"
+    },
+    {
+      "slug": "casino-audio",
+      "name": "Casino Audio",
+      "type": "audio",
+      "thumb": "https://kenney.nl/media/pages/assets/casino-audio/225669dbea-1677590184/preview-2-400x.png"
+    },
+    {
+      "slug": "castle-kit",
+      "name": "Castle Kit",
+      "type": "3d_model",
+      "thumb": "https://kenney.nl/media/pages/assets/castle-kit/b047abca12-1711543631/sample-400x.png"
+    },
+    {
+      "slug": "city-kit-commercial",
+      "name": "City Kit (Commercial)",
+      "type": "3d_model",
+      "thumb": "https://kenney.nl/media/pages/assets/city-kit-commercial/ca60ea54ef-1747481474/sample-400x.png"
+    },
+    {
+      "slug": "city-kit-roads",
+      "name": "City Kit (Roads)",
+      "type": "3d_model",
+      "thumb": "https://kenney.nl/media/pages/assets/city-kit-roads/8021370415-1741864353/sample-400x.png"
+    },
+    {
+      "slug": "city-kit-suburban",
+      "name": "City Kit (Suburban)",
+      "type": "3d_model",
+      "thumb": "https://kenney.nl/media/pages/assets/city-kit-suburban/8c3d4e93a3-1745479402/sample-400x.png"
+    },
+    {
+      "slug": "crosshair-pack",
+      "name": "Crosshair Pack",
+      "type": "ui",
+      "thumb": "https://kenney.nl/media/pages/assets/crosshair-pack/6aac591d3a-1677697135/preview-400x.png"
+    },
+    {
+      "slug": "digital-audio",
+      "name": "Digital Audio",
+      "type": "audio",
+      "thumb": "https://kenney.nl/media/pages/assets/digital-audio/f240714ae3-1677590256/preview-3-400x.png"
+    },
+    {
+      "slug": "fantasy-town-kit",
+      "name": "Fantasy Town Kit",
+      "type": "3d_model",
+      "thumb": "https://kenney.nl/media/pages/assets/fantasy-town-kit/c13eafebab-1754222363/sample-400x.png"
+    },
+    {
+      "slug": "fish-pack",
+      "name": "Fish Pack",
+      "thumb": "https://kenney.nl/media/pages/assets/fish-pack/d45432eddb-1747237954/sample-400x.png"
+    },
+    {
+      "slug": "food-kit",
+      "name": "Food Kit",
+      "type": "3d_model",
+      "thumb": "https://kenney.nl/media/pages/assets/food-kit/7a37477a9c-1719418523/preview-400x.png"
+    },
+    {
+      "slug": "furniture-kit",
+      "name": "Furniture Kit",
+      "type": "3d_model",
+      "thumb": "https://kenney.nl/media/pages/assets/furniture-kit/4573c6a40b-1677580842/sample-400x.png"
+    },
+    {
+      "slug": "game-icons",
+      "name": "Game Icons",
+      "type": "ui",
+      "thumb": "https://kenney.nl/media/pages/assets/game-icons/349f36a54d-1677661575/preview-400x.png"
+    },
+    {
+      "slug": "game-icons-expansion",
+      "name": "Game Icons Expansion",
+      "type": "ui",
+      "thumb": "https://kenney.nl/media/pages/assets/game-icons-expansion/d4501d46fe-1677661639/preview-400x.png"
+    },
+    {
+      "slug": "generic-items",
+      "name": "Generic Items",
+      "thumb": "https://kenney.nl/media/pages/assets/generic-items/3f9e6f7baf-1677666995/preview-400x.png"
+    },
+    {
+      "slug": "graveyard-kit",
+      "name": "Graveyard Kit",
+      "type": "3d_model",
+      "thumb": "https://kenney.nl/media/pages/assets/graveyard-kit/9f3be82eb6-1760691801/sample-400x.png"
+    },
+    {
+      "slug": "hexagon-kit",
+      "name": "Hexagon Kit",
+      "type": "3d_model",
+      "thumb": "https://kenney.nl/media/pages/assets/hexagon-kit/3920b0463b-1706007672/sample-400x.png"
+    },
+    {
+      "slug": "holiday-kit",
+      "name": "Holiday Kit",
+      "type": "3d_model",
+      "thumb": "https://kenney.nl/media/pages/assets/holiday-kit/2e8f59c1ab-1733923964/sample-400x.png"
+    },
+    {
+      "slug": "impact-sounds",
+      "name": "Impact Sounds",
+      "type": "audio",
+      "thumb": "https://kenney.nl/media/pages/assets/impact-sounds/37d145475f-1677589720/audio_impact-400x.png"
+    },
+    {
+      "slug": "input-prompts",
+      "name": "Input Prompts",
+      "type": "ui",
+      "thumb": "https://kenney.nl/media/pages/assets/input-prompts/147fa257f7-1709558167/preview-steam-deck-400x.png"
+    },
+    {
+      "slug": "interface-sounds",
+      "name": "Interface Sounds",
+      "type": "audio",
+      "thumb": "https://kenney.nl/media/pages/assets/interface-sounds/428fc5f14c-1677589445/preview_interface-400x.png"
+    },
+    {
+      "slug": "isometric-blocks",
+      "name": "Isometric Blocks",
+      "thumb": "https://kenney.nl/media/pages/assets/isometric-blocks/80ab4e78eb-1677662255/sample-400x.png"
+    },
+    {
+      "slug": "jumper-pack",
+      "name": "Jumper Pack",
+      "thumb": "https://kenney.nl/media/pages/assets/jumper-pack/fafcb50fc8-1677666692/sample-400x.png"
+    },
+    {
+      "slug": "kenney-fonts",
+      "name": "Kenney Fonts",
+      "type": "font",
+      "thumb": "https://kenney.nl/media/pages/assets/kenney-fonts/703183582c-1677661704/preview-400x.png"
+    },
+    {
+      "slug": "medieval-rts",
+      "name": "Medieval RTS",
+      "type": "3d_model",
+      "thumb": "https://kenney.nl/media/pages/assets/medieval-rts/fdf8b5d6e5-1677693585/sample-400x.png"
+    },
+    {
+      "slug": "micro-roguelike",
+      "name": "Micro Roguelike",
+      "style": "pixel",
+      "thumb": "https://kenney.nl/media/pages/assets/micro-roguelike/f2c3725ce4-1677578235/sample-400x.png"
+    },
+    {
+      "slug": "mini-arena",
+      "name": "Mini Arena",
+      "type": "3d_model",
+      "thumb": "https://kenney.nl/media/pages/assets/mini-arena/acc1e8d98e-1709220747/sample-400x.png"
+    },
+    {
+      "slug": "mini-characters",
+      "name": "Mini Characters",
+      "type": "3d_model",
+      "thumb": "https://kenney.nl/media/pages/assets/mini-characters/357d1a9452-1721210569/preview-400x.png"
+    },
+    {
+      "slug": "mini-dungeon",
+      "name": "Mini Dungeon",
+      "type": "3d_model",
+      "thumb": "https://kenney.nl/media/pages/assets/mini-dungeon/5b23e91c6e-1785314288/sample-400x.png"
+    },
+    {
+      "slug": "mini-skate",
+      "name": "Mini Skate",
+      "type": "3d_model",
+      "thumb": "https://kenney.nl/media/pages/assets/mini-skate/f6068b9ce8-1709221252/sample-400x.png"
+    },
+    {
+      "slug": "modular-buildings",
+      "name": "Modular Buildings",
+      "type": "3d_model",
+      "thumb": "https://kenney.nl/media/pages/assets/modular-buildings/cbda060603-1707397438/sample-400x.png"
+    },
+    {
+      "slug": "monster-builder-pack",
+      "name": "Monster Builder Pack",
+      "thumb": "https://kenney.nl/media/pages/assets/monster-builder-pack/82ac296d53-1677495442/sample-400x.png"
+    },
+    {
+      "slug": "music-jingles",
+      "name": "Music Jingles",
+      "type": "audio",
+      "thumb": "https://kenney.nl/media/pages/assets/music-jingles/ef8668e122-1677590390/preview-5-400x.png"
+    },
+    {
+      "slug": "nature-kit",
+      "name": "Nature Kit",
+      "type": "3d_model",
+      "thumb": "https://kenney.nl/media/pages/assets/nature-kit/656a90532f-1677698896/sample-400x.png"
+    },
+    {
+      "slug": "particle-pack",
+      "name": "Particle Pack",
+      "type": "vfx",
+      "thumb": "https://kenney.nl/media/pages/assets/particle-pack/d50c7fc9b6-1677578655/preview-400x.png"
+    },
+    {
+      "slug": "pattern-pack",
+      "name": "Pattern Pack",
+      "type": "texture",
+      "thumb": "https://kenney.nl/media/pages/assets/pattern-pack/3b80483303-1677484337/preview-400x.png"
+    },
+    {
+      "slug": "physics-assets",
+      "name": "Physics Assets",
+      "thumb": "https://kenney.nl/media/pages/assets/physics-assets/1b9cc12e32-1677667199/sample-400x.png"
+    },
+    {
+      "slug": "pirate-kit",
+      "name": "Pirate Kit",
+      "type": "3d_model",
+      "thumb": "https://kenney.nl/media/pages/assets/pirate-kit/ae3180d290-1771333077/preview-400x.png"
+    },
+    {
+      "slug": "pixel-line-platformer",
+      "name": "Pixel Line Platformer",
+      "style": "pixel",
+      "thumb": "https://kenney.nl/media/pages/assets/pixel-line-platformer/5fd5972410-1677495836/sample-400x.png"
+    },
+    {
+      "slug": "pixel-platformer",
+      "name": "Pixel Platformer",
+      "style": "pixel",
+      "thumb": "https://kenney.nl/media/pages/assets/pixel-platformer/bf585643f0-1696667860/samplea-400x.png"
+    },
+    {
+      "slug": "pixel-shmup",
+      "name": "Pixel Shmup",
+      "style": "pixel",
+      "thumb": "https://kenney.nl/media/pages/assets/pixel-shmup/43204e8358-1677495743/sample-400x.png"
+    },
+    {
+      "slug": "pixel-vehicle-pack",
+      "name": "Pixel Vehicle Pack",
+      "style": "pixel",
+      "thumb": "https://kenney.nl/media/pages/assets/pixel-vehicle-pack/f3918c8717-1677578606/preview-400x.png"
+    },
+    {
+      "slug": "platformer-kit",
+      "name": "Platformer Kit",
+      "type": "3d_model",
+      "thumb": "https://kenney.nl/media/pages/assets/platformer-kit/12fa6cafde-1775122247/sample-400x.png"
+    },
+    {
+      "slug": "prototype-textures",
+      "name": "Prototype Textures",
+      "type": "texture",
+      "thumb": "https://kenney.nl/media/pages/assets/prototype-textures/f2ebc51899-1677578302/sample-400x.png"
+    },
+    {
+      "slug": "puzzle-pack-2",
+      "name": "Puzzle Pack 2",
+      "thumb": "https://kenney.nl/media/pages/assets/puzzle-pack-2/8b9c51463a-1677667469/sample1-400x.png"
+    },
+    {
+      "slug": "racing-kit",
+      "name": "Racing Kit",
+      "type": "3d_model",
+      "thumb": "https://kenney.nl/media/pages/assets/racing-kit/fbc58ae3cd-1677580945/sample-400x.png"
+    },
+    {
+      "slug": "retro-urban-kit",
+      "name": "Retro Urban Kit",
+      "type": "3d_model",
+      "thumb": "https://kenney.nl/media/pages/assets/retro-urban-kit/b9c649752d-1738147501/sample-400x.png"
+    },
+    {
+      "slug": "roguelike-caves-dungeons",
+      "name": "Roguelike Caves & Dungeons",
+      "style": "pixel",
+      "thumb": "https://kenney.nl/media/pages/assets/roguelike-caves-dungeons/154aef76de-1677694827/sample-400x.png"
+    },
+    {
+      "slug": "roguelike-characters",
+      "name": "Roguelike Characters",
+      "style": "pixel",
+      "thumb": "https://kenney.nl/media/pages/assets/roguelike-characters/da661e4fb3-1677694932/sample-400x.png"
+    },
+    {
+      "slug": "roguelike-indoors",
+      "name": "Roguelike Indoors",
+      "style": "pixel",
+      "thumb": "https://kenney.nl/media/pages/assets/roguelike-indoors/3c041db86f-1677694884/sample-400x.png"
+    },
+    {
+      "slug": "roguelike-modern-city",
+      "name": "Roguelike Modern City",
+      "style": "pixel",
+      "thumb": "https://kenney.nl/media/pages/assets/roguelike-modern-city/69c121b8ae-1677694738/sample-400x.png"
+    },
+    {
+      "slug": "roguelike-rpg-pack",
+      "name": "Roguelike RPG Pack",
+      "style": "pixel",
+      "thumb": "https://kenney.nl/media/pages/assets/roguelike-rpg-pack/6b88b8d663-1677697411/sample1-400x.png"
+    },
+    {
+      "slug": "rolling-ball-assets",
+      "name": "Rolling Ball Assets",
+      "thumb": "https://kenney.nl/media/pages/assets/rolling-ball-assets/41181d8cea-1677495687/sample-400x.png"
+    },
+    {
+      "slug": "rpg-audio",
+      "name": "RPG Audio",
+      "type": "audio",
+      "thumb": "https://kenney.nl/media/pages/assets/rpg-audio/ce8569f2f8-1677590326/preview-4-400x.png"
+    },
+    {
+      "slug": "sci-fi-sounds",
+      "name": "Sci-Fi Sounds",
+      "type": "audio",
+      "thumb": "https://kenney.nl/media/pages/assets/sci-fi-sounds/112ea5fed7-1677589328/audiopreview_scifi-400x.png"
+    },
+    {
+      "slug": "scribble-dungeons",
+      "name": "Scribble Dungeons",
+      "thumb": "https://kenney.nl/media/pages/assets/scribble-dungeons/5b084d9272-1674932853/sample-400x.png"
+    },
+    {
+      "slug": "scribble-platformer",
+      "name": "Scribble Platformer",
+      "thumb": "https://kenney.nl/media/pages/assets/scribble-platformer/d6a0e3a9ac-1674932930/sample-400x.png"
+    },
+    {
+      "slug": "shooting-gallery",
+      "name": "Shooting Gallery",
+      "thumb": "https://kenney.nl/media/pages/assets/shooting-gallery/dcd0ff0bca-1677662383/sample-400x.png"
+    },
+    {
+      "slug": "simplified-platformer-pack",
+      "name": "Simplified Platformer Pack",
+      "thumb": "https://kenney.nl/media/pages/assets/simplified-platformer-pack/241001fae8-1677693195/preview-400x.png"
+    },
+    {
+      "slug": "sokoban",
+      "name": "Sokoban",
+      "thumb": "https://kenney.nl/media/pages/assets/sokoban/8ed55d0eea-1677579116/sample-400x.png"
+    },
+    {
+      "slug": "space-kit",
+      "name": "Space Kit",
+      "type": "3d_model",
+      "thumb": "https://kenney.nl/media/pages/assets/space-kit/28e67de6d9-1677698968/sample-400x.png"
+    },
+    {
+      "slug": "space-station-kit",
+      "name": "Space Station Kit",
+      "type": "3d_model",
+      "thumb": "https://kenney.nl/media/pages/assets/space-station-kit/a795b59757-1712749915/sample-400x.png"
+    },
+    {
+      "slug": "survival-kit",
+      "name": "Survival Kit",
+      "type": "3d_model",
+      "thumb": "https://kenney.nl/media/pages/assets/survival-kit/4c1d761236-1712149236/sample-400x.png"
+    },
+    {
+      "slug": "tiny-battle",
+      "name": "Tiny Battle",
+      "style": "pixel",
+      "thumb": "https://kenney.nl/media/pages/assets/tiny-battle/a33076fa44-1691487572/sample-400x.png"
+    },
+    {
+      "slug": "tiny-dungeon",
+      "name": "Tiny Dungeon",
+      "style": "pixel",
+      "thumb": "https://kenney.nl/media/pages/assets/tiny-dungeon/8c4f705db0-1674742412/sample-400x.png"
+    },
+    {
+      "slug": "tiny-ski",
+      "name": "Tiny Ski",
+      "style": "pixel",
+      "thumb": "https://kenney.nl/media/pages/assets/tiny-ski/05dca5ebc4-1680201502/sample-400x.png"
+    },
+    {
+      "slug": "tiny-town",
+      "name": "Tiny Town",
+      "style": "pixel",
+      "thumb": "https://kenney.nl/media/pages/assets/tiny-town/e241a9f6c0-1674742338/sample-400x.png"
+    },
+    {
+      "slug": "tower-defense-kit",
+      "name": "Tower Defense Kit",
+      "type": "3d_model",
+      "thumb": "https://kenney.nl/media/pages/assets/tower-defense-kit/1f419ba88f-1726042030/sample-400x.png"
+    },
+    {
+      "slug": "train-kit",
+      "name": "Train Kit",
+      "type": "3d_model",
+      "thumb": "https://kenney.nl/media/pages/assets/train-kit/625675b011-1722429699/preview-400x.png"
+    },
+    {
+      "slug": "ui-audio",
+      "name": "UI Audio",
+      "type": "audio",
+      "thumb": "https://kenney.nl/media/pages/assets/ui-audio/2dbeff8f75-1677590482/preview-6-400x.png"
+    },
+    {
+      "slug": "ui-pack",
+      "name": "UI Pack",
+      "type": "ui",
+      "thumb": "https://kenney.nl/media/pages/assets/ui-pack/249266460a-1718203984/sample-400x.png"
+    },
+    {
+      "slug": "ui-pack-rpg-expansion",
+      "name": "UI Pack RPG Expansion",
+      "type": "ui",
+      "thumb": "https://kenney.nl/media/pages/assets/ui-pack-rpg-expansion/3cbd16d800-1677661820/sample-400x.png"
+    },
+    {
+      "slug": "voxel-pack",
+      "name": "Voxel Pack",
+      "style": "voxel",
+      "thumb": "https://kenney.nl/media/pages/assets/voxel-pack/52a25234a4-1677662495/sample_2d-400x.png"
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+# Vendored single-file libs. fetch-deps.ps1 / `make deps` recreate them.
+vendor/
+
+# Build output
+build/
+magpie
+magpie.exe
+*.o
+
+# The index and its WAL sidecars. Regenerate with `magpie crawl`.
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+
+__pycache__/
+
+node_modules/
+output/playwright/
