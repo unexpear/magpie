@@ -51,6 +51,42 @@ async function scenario(name,body,{data=fixture,saved}={}){
   console.log('PASS publication exclusions, preview policy and review history');
   browser=await chromium.launch({channel:process.env.MAGPIE_BROWSER_CHANNEL||(process.platform==='win32'?'msedge':undefined),headless:true});
   try{
+    await scenario('inferred tags can be excluded from search and shared tag filters',async page=>{
+      await expect(page.locator('#results .hit')).toHaveCount(3);
+      await page.fill('#q','metal');
+      await expect(page.locator('#results .hit')).toHaveCount(1);
+      await page.uncheck('#includeinferred');
+      await expect(page.locator('#results')).toContainText('No matches');
+      await page.reload();
+      await expect(page.locator('#includeinferred')).not.toBeChecked();
+      await expect(page.locator('#results')).toContainText('No matches');
+      await page.fill('#q','wood');
+      await expect(page.locator('#results .hit')).toHaveCount(2);
+      await page.click('#clearq');
+      await expect(page.locator('#f-tag [data-tag="metal"]')).toHaveCount(0);
+      await page.check('#includeinferred');
+      await expect(page.locator('#f-tag')).toContainText('1 inferred');
+      await page.check('#f-tag [data-tag="metal"]');
+      await expect(page.locator('#results .hit')).toHaveCount(1);
+      await page.uncheck('#includeinferred');
+      await expect(page.locator('#results')).toContainText('No matches');
+      await page.locator('[data-chip="inferred"]').click();
+      await expect(page.locator('#results .hit')).toHaveCount(1);
+    },{data:{...fixture,assets:[{...current,tga:'metal'},sa,cc0],}});
+    await scenario('missing evidence stays unknown and commercial labels make no clearance claim',async page=>{
+      await expect(page.locator('#health')).toContainText('not recorded');
+      await expect(page.locator('#sources')).toContainText('match commercial filter');
+      await page.click('[data-use="commercial"]');
+      await expect(page.locator('#chips')).toContainText('review terms');
+      await expect(page.locator('#chips')).not.toContainText('can ship commercially');
+      await page.locator('.hit').first().press('Enter');
+      await expect(page.locator('#dbody')).toContainText('Reported licence');
+      await expect(page.locator('#dbody')).toContainText('Source tags: not recorded');
+      await expect(page.locator('#dbody')).toContainText('Link checked');
+      await expect(page.locator('#dbody')).toContainText('not recorded');
+      assert.equal(await page.evaluate(()=>dateLabel(1e20)),'not recorded');
+      assert.equal(await page.evaluate(()=>dateLabel(-1)),'not recorded');
+    },{data:{...fixture,assets:[{...current,tg:'',seen:0,checked:0}]}});
     await scenario('project attribution notes persist and reject unsafe evidence URLs',async page=>{
       await page.locator('.hit[data-u="https://source.test/barrel"] [data-pick]').click();
       await page.click('#trayopen');

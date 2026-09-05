@@ -329,12 +329,13 @@ textarea{
     <label class="sr" for="sort">Sort</label>
     <select id="sort">
       <option value="rel">Best match</option>
-      <option value="pop">Most popular</option>
-      <option value="new">Newest</option>
+      <option value="pop">Popularity within source</option>
+      <option value="new">Recently updated (reported)</option>
       <option value="az">A–Z</option>
     </select>
   </div>
 
+  <label style="display:block;font-size:13px;color:var(--dim);margin-top:10px"><input id="includeinferred" type="checkbox" checked> Include inferred tags in search and tag filters</label>
   <div id="chips"></div>
 </header>
 
@@ -454,7 +455,7 @@ let byId = new Map(), byURL = new Map();
 let basket = new Map();   // url -> asset
 
 const state = {
-  q:"", use:"any", ty:"", st:"", l:"", s:"", sort:"rel",
+  q:"", use:"any", ty:"", st:"", l:"", s:"", sort:"rel", inferred:true,
   /* Multiple, ANDed. "isometric" and "animated" is a question you actually
      want to ask, and a single-select facet cannot express it. */
   tags: [],
@@ -501,6 +502,7 @@ function boot(){
 }
 
 function wire(){
+  $("#includeinferred").addEventListener("change",()=>{state.inferred=$("#includeinferred").checked;run();});
   $("#creditasset").addEventListener("change",loadCreditNotes);
   $("#creditsavenotes").addEventListener("click",saveCreditNotes);
   $("#projectexport").addEventListener("click",()=>downloadFile(Magpie.project(basket.values()),"magpie-project.json","application/json"));
@@ -594,6 +596,7 @@ function readURL(){
   state.s    = p.get("src")  || "";
   state.tags = (p.get("tag") || "").split(",").filter(Boolean);
   state.sort = p.get("sort") || "rel";
+  state.inferred = p.get("inferred") !== "0";
 }
 
 function writeURL(){
@@ -606,6 +609,7 @@ function writeURL(){
   if (state.s)            p.set("src", state.s);
   if (state.tags.length)  p.set("tag", state.tags.join(","));
   if (state.sort !== "rel") p.set("sort", state.sort);
+  if (!state.inferred) p.set("inferred", "0");
   const qs = p.toString();
   history.replaceState(null, "", qs ? "?" + qs : location.pathname);
 }
@@ -616,7 +620,7 @@ const matchesUse = a =>
   state.use === "any" ? true :
   state.use === "commercial" ? !!a.c : (!!a.c && !!a.n);
 
-const hay = a => a._h || (a._h =
+const hay = a => !state.inferred ? a._sourceHay : a._h || (a._h =
   (a.t + " " + (a.tg||"") + " " + (a.tga||"") + " " + (a.a||"") + " " + a.s).toLowerCase());
 
 /* Apply every filter except one dimension — used for facet counts, so the
@@ -626,7 +630,7 @@ const hay = a => a._h || (a._h =
 /* Tags come from two places and the difference matters for trust, not for
    filtering: a search for "tileset" doesn't care who said it, but a user
    deciding whether to believe it does. */
-const allTags = a => a._t ||
+const allTags = a => !state.inferred ? a._sourceTags : a._t ||
   (a._t = new Set([...(a.tg||"").split(","), ...(a.tga||"").split(",")].filter(Boolean)));
 const hasTag = (a, t) => allTags(a).has(t);
 const isMined = (a, t) => !((a.tg||"").split(",").includes(t));
@@ -664,6 +668,7 @@ function score(a, terms){
 }
 
 function run(){
+  $("#includeinferred").checked=state.inferred;
   writeURL();
   const terms = state.q.toLowerCase().split(/\s+/).filter(Boolean);
   queryCandidates=DATA.assets.filter(a=>terms.every(w=>hay(a).includes(w)));
@@ -882,8 +887,9 @@ function renderChips(){
     `<span class="chip"><b>${esc(label)}</b> ${esc(val)}
       <button data-chip="${key}" aria-label="Remove ${esc(label)} filter">✕</button></span>`;
 
-  if (state.use === "commercial") c.push(chip("use","licence","can ship commercially"));
-  if (state.use === "nocredit")   c.push(chip("use","licence","no credit needed"));
+  if (state.use === "commercial") c.push(chip("use","licence","commercial filter · review terms"));
+  if (state.use === "nocredit")   c.push(chip("use","licence","reported CC0"));
+  if (!state.inferred) c.push(chip("inferred","tags","source tags only"));
   if (state.ty) c.push(chip("ty","type",  state.ty));
   if (state.st) c.push(chip("st","style", state.st));
   if (state.l)  c.push(chip("l","licence",licName(state.l)));
@@ -900,8 +906,10 @@ function renderChips(){
       if (k === "all") {
         state.use = "any"; state.ty = state.st = state.l = state.s = "";
         state.tags = [];
+        state.inferred = true;
       }
       else if (k === "use") state.use = "any";
+      else if (k === "inferred") state.inferred = true;
       else state[k] = "";
       syncSeg(); run();
     }));
@@ -953,9 +961,8 @@ function renderTagFacet(){
   const top = [...counts].sort((x,y) => y[1]-x[1]).slice(0, 14);
   const el  = $("#f-tag");
 
-  const dotFor = t => (mined.get(t)||0) > (counts.get(t)||0) / 2
-    ? ` <span title="mostly inferred from titles by Magpie, not published by the source"
-             style="color:var(--warn)">•</span>` : "";
+  const dotFor = t => (mined.get(t)||0) > 0
+    ? ` <small style="color:var(--warn)">${mined.get(t)} inferred</small>` : "";
 
   const chosen = state.tags.map(t => `
     <label class="opt">
@@ -987,13 +994,17 @@ function renderFacets(){
   renderTagFacet();
 }
 
-function dateLabel(seconds){ return seconds ? new Date(seconds*1000).toISOString().slice(0,10) : "not recorded"; }
+function dateLabel(seconds){
+  if(!Number.isFinite(seconds) || seconds<=0) return "not recorded";
+  const date=new Date(seconds*1000);
+  return Number.isFinite(date.getTime()) ? date.toISOString().slice(0,10) : "not recorded";
+}
 function renderSources(){
   $("#sources").innerHTML = DATA.sources.map(s => `
     <div class="srcrow">
       <div>
         <button class="pick" data-src="${esc(s.name)}">${esc(s.name)}</button>
-        <small>${s.commercial.toLocaleString()} usable${
+        <small>${s.commercial.toLocaleString()} match commercial filter${
           s.dead ? ` · ${s.dead} dead` : ""} ·
           <a href="${esc(s.site||"#")}" target="_blank" rel="noopener">site ↗</a></small>
       </div>
@@ -1020,9 +1031,12 @@ function renderHealth(){
     row("assets", s.total.toLocaleString()) +
     row("commercial filter eligible", s.commercial.toLocaleString()) +
     row("no credit needed", s.nocredit.toLocaleString()) +
-    row("tagged by the source", (s.source_tagged ?? 0).toLocaleString(),
+    row("creator not recorded", DATA.assets.filter(a=>!a.a?.trim()).length.toLocaleString(),
+        "No creator name in the current catalogue; not a claim that the source has none") +
+    row("source tags not recorded", DATA.assets.filter(a=>!a.tg?.trim()).length.toLocaleString()) +
+    row("tagged by the source", (s.source_tagged ?? "not recorded").toLocaleString(),
         "Tags the site itself published") +
-    row("tags mined by us", (s.auto_only ?? 0).toLocaleString(),
+    row("inferred tags only", (s.auto_only ?? "not recorded").toLocaleString(),
         "Rows whose only tags were inferred from their title") +
     row("type unclassified", s.unclassifiable.toLocaleString(),
         "The classifier looked and the source data was not enough") +
@@ -1068,22 +1082,22 @@ function openDetail(u){
         ${row("Author",  a.a ? esc(a.a)
               : (a.n ? "<span style='color:var(--dim)'>not recorded</span>"
                      : "<span style='color:var(--bad)'>not recorded — required for this licence</span>"))}
-        ${row("Licence", `${esc(licName(a.l))}${a.lu
+        ${row("Reported licence", `${esc(licName(a.l))}${a.lu
               ? ` · <a href="${esc(a.lu)}" target="_blank" rel="noopener">terms ↗</a>` : ""}`)}
-        ${row("Use",     a.c ? (a.n ? "commercial, no credit needed"
-                                    : "commercial, credit required")
-                             : "<span style='color:var(--bad)'>not cleared for commercial use</span>")}
+        ${row("Commercial filter", a.c ? "Matches the indexed licence category; check source terms and project compatibility"
+                             : "Outside the conservative filter; review the source terms")}
         ${row("Obligations", esc(Magpie.obligations(a)))}
         ${row("Source seen", dateLabel(a.seen))}
         ${row("Link checked", dateLabel(a.checked))}
-        ${row("Type",    esc(a.ty))}
-        ${row("Style",   a.st && a.st !== "unclassifiable" ? esc(a.st) : "")}
+        ${row("Source-reported update", dateLabel(a.up))}
+        ${row("Type (classified)", esc(a.ty||"unclassifiable"))}
+        ${row("Style (classified)", esc(a.st||"unclassifiable"))}
         ${row("Formats", a.f ? esc(a.f) : "")}
         ${row("Triangles", a.pc ? a.pc.toLocaleString() : "")}
-        ${row("Popularity", a.p ? a.p + "%" : "")}
+        ${row("Source popularity rank", a.p ? `${a.p}/100 grouping within ${esc(a.s)}; source signals vary` : "not recorded")}
       </dl>
       ${src.length ? `<div style="margin-top:11px"><dt style="color:var(--dim);font-size:12px">
-        Tags from ${esc(a.s)}</dt><div class="taglist">${tagBtns(src, false)}</div></div>` : ""}
+        Tags from ${esc(a.s)}</dt><div class="taglist">${tagBtns(src, false)}</div></div>` : '<p class="hint">Source tags: not recorded</p>'}
       ${auto.length ? `<div style="margin-top:9px"><dt style="color:var(--dim);font-size:12px">
         Inferred by Magpie</dt><div class="taglist">${tagBtns(auto, true)}</div>
         <div class="hint">Dashed tags were read off the title, not published by the source.</div>
@@ -1093,6 +1107,7 @@ function openDetail(u){
   $("#dbody").querySelectorAll("[data-addtag]").forEach(b =>
     b.addEventListener("click", () => {
       const t = b.dataset.addtag;
+      if(b.classList.contains("mined")) state.inferred=true;
       if (!state.tags.includes(t)) state.tags.push(t);
       $("#detail").close();
       run();

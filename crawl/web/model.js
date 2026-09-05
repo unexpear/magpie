@@ -104,7 +104,9 @@
     return issues;
   }
   function prepare(a){
-    return {...a,_h:(a.t+" "+(a.tg||"")+" "+(a.tga||"")+" "+(a.a||"")+" "+a.s).toLowerCase(),
+    return {...a,_sourceHay:(a.t+" "+(a.tg||"")+" "+(a.a||"")+" "+a.s).toLowerCase(),
+      _sourceTags:new Set((a.tg||"").split(",").filter(Boolean)),
+      _h:(a.t+" "+(a.tg||"")+" "+(a.tga||"")+" "+(a.a||"")+" "+a.s).toLowerCase(),
       _t:new Set([...(a.tg||"").split(","),...(a.tga||"").split(",")].filter(Boolean))};
   }
   const api={asset,validateIndex,readProject,project,differences,accept,obligations,prepare,previewAllowed,creditIssues,saved};

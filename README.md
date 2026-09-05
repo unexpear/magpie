@@ -11,12 +11,14 @@ The current bundled catalogue contains **19,359 assets**. Source observations da
 ## What you can do
 
 - Search by title, tags, author and source; narrow by type, style and licence.
+- Turn off inferred tags in search and tag filters; the choice is preserved in shared search links. Type and style remain Magpie classifications.
 - Use a conservative commercial filter or a CC0 filter, then inspect the exact source terms. Attribution, ShareAlike and other obligations are shown explicitly.
 - Collect assets into a credits list and download `CREDITS.md`.
 - Save full attribution notices, creator corrections, modification notes and source-review evidence with each project asset.
 - Back up and import projects as JSON, including saved metadata and revision history.
 - Review changes to saved authors or licences without silently overwriting your original record.
 - See source freshness, incomplete crawls and missing metadata.
+- Inspect recorded update dates and source-relative popularity ranks without treating them as publication dates or a global download ranking.
 
 Magpie reports indexed information; a filter is not a substitute for checking the source licence and any asset-specific instructions. Some creator names and tags are still missing. The interface identifies missing required credits rather than inventing them.
 
