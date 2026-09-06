@@ -506,6 +506,7 @@ $("#results").innerHTML = Array.from({length:8},
 
 restoreBasket();
 readURL();
+$("#q").value=state.q;
 
 fetch("data.json")
   .then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
@@ -521,7 +522,7 @@ fetch("data.json")
 function boot(){
   byId = new Map(DATA.assets.filter(a=>a.id).map(a=>[a.id,a]));
   byURL = new Map(DATA.assets.map(a=>[a.u,a]));
-  $("#q").value = state.q;
+  state.q = $("#q").value;
   $("#sort").value = state.sort;
   syncSeg();
   renderSources();

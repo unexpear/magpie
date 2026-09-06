@@ -127,6 +127,16 @@ async function scenario(name,body,{data=fixture,saved,filtersOpen=true}={}){
       await expect(page.locator('#results .hit')).toHaveCount(1);
       await page.fill('#q','nonexistent words');await expect(page.locator('#results')).toContainText('Try fewer words');
     });
+    await scenario('search typed during catalogue loading is retained',async (page,context)=>{
+      await expect(page.locator('#results .hit')).toHaveCount(3);
+      let release;
+      const ready=new Promise(resolve=>{release=resolve;});
+      await context.route('**/data.json',async route=>{await ready;await route.fulfill({contentType:'application/json',body:JSON.stringify(fixture)});});
+      await page.reload({waitUntil:'domcontentloaded'});
+      await page.fill('#q','barrels');release();
+      await expect(page.locator('#results .hit')).toHaveCount(1);
+      await expect(page.locator('#q')).toHaveValue('barrels');
+    });
     await scenario('legacy OGA-BY records disclose the unknown version in details and credits',async page=>{
       await page.locator('.hit').first().press('Enter');
       await expect(page.locator('#dbody')).toContainText('Not verified in this legacy record');
