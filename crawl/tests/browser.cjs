@@ -23,7 +23,7 @@ async function scenario(name,body,{data=fixture,saved,filtersOpen=true}={}){
       return route.fulfill({status:200,contentType:file==='index.html'?'text/html':file?'application/javascript':'application/json',body:file?fs.readFileSync(path.join(SITE,file)):JSON.stringify(data)});
     });
     if(saved) await context.addInitScript(value=>localStorage.setItem('magpie.basket.v1',JSON.stringify(value)),saved);
-    if(filtersOpen) await context.addInitScript(()=>document.addEventListener('DOMContentLoaded',()=>{document.querySelector('#filters').open=true;}));
+    if(filtersOpen) await context.addInitScript(()=>document.addEventListener('DOMContentLoaded',()=>{document.querySelector('#filters').open=true;document.querySelector('#morefilters').open=true;}));
     const page=await context.newPage();
     page.on('pageerror',error=>errors.push(error.message));
     await page.goto('http://magpie.test/');
@@ -49,6 +49,10 @@ async function scenario(name,body,{data=fixture,saved,filtersOpen=true}={}){
   assert.equal(revised.credit_notice,notes.credit_notice); assert.equal(revised.reviewed_at,0);
   assert.equal(revised.history[0].reviewed_at,notes.reviewed_at);
   assert.throws(()=>M.saved({...current,reviewed_at:1e20}),/Invalid save date/);
+  assert.equal(M.matchesQuery('concrete road barrier',['road','barriers']),true);
+  assert.equal(M.matchesQuery('box bush church class berry',['boxes','bushes','churches','classes','berries']),true);
+  assert.equal(M.matchesQuery('gla gra statu',['glass']),false);
+  assert.equal(M.matchesQuery('barr',['barriers']),false);
   console.log('PASS publication exclusions, preview policy and review history');
   browser=await chromium.launch({channel:process.env.MAGPIE_BROWSER_CHANNEL||(process.platform==='win32'?'msedge':undefined),headless:true});
   try{
@@ -58,7 +62,8 @@ async function scenario(name,body,{data=fixture,saved,filtersOpen=true}={}){
         await expect(page.locator('#results .hit')).toHaveCount(3);
         await expect(page.locator('#filters')).not.toHaveAttribute('open','');
         const box=await page.locator('#results').boundingBox();
-        assert.ok(box.y<220,`Grid starts at ${box.y}`);
+        assert.ok(box.y<240,`Grid starts at ${box.y}`);
+        assert.ok((await page.locator('#q').boundingBox()).width>viewport.width*.85);
         assert.ok(box.width>viewport.width*.9,`Grid width ${box.width}`);
         assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
         await page.locator('#filters>summary').press('Space');
@@ -72,6 +77,56 @@ async function scenario(name,body,{data=fixture,saved,filtersOpen=true}={}){
         await page.screenshot({path:path.join(ROOT,`output/playwright/compact-${viewport.width}.png`)});
       }
     },{filtersOpen:false});
+    await scenario('clear credits is undoable after reload and preserves later additions',async page=>{
+      await page.locator('#projectfile').setInputFiles({name:'project.json',mimeType:'application/json',buffer:Buffer.from(M.project([{...current,credit_notice:'Keep my notice',history:[old]}]))});
+      await page.click('#creditactions>summary');await page.click('#trayclear');
+      await expect(page.locator('#undoclear')).toBeVisible();
+      await expect(page.locator('#tray')).not.toBeVisible();
+      await page.reload();
+      await page.locator(`[data-pick="${cc0.u}"]`).click();
+      await page.click('#restorecredits');
+      await expect(page.locator('#traycount')).toHaveText('2 assets in credits');
+      const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('magpie.basket.v1')));
+      assert.equal(saved.find(a=>a.id===current.id).credit_notice,'Keep my notice');
+      assert.equal(saved.find(a=>a.id===current.id).history.length,1);
+      await expect(page.locator('#undoclear')).not.toBeVisible();
+      await page.reload();await expect(page.locator('#traycount')).toHaveText('2 assets in credits');
+    });
+    await scenario('clear keeps the list when the undo copy cannot be saved',async page=>{
+      await page.locator(`[data-pick="${current.u}"]`).click();
+      await page.evaluate(()=>{Storage.prototype.setItem=function(){throw new DOMException('Full','QuotaExceededError');};});
+      await page.click('#creditactions>summary');await page.click('#trayclear');
+      await expect(page.locator('#traycount')).toHaveText('1 asset in credits');
+      await expect(page.locator('#projectnote')).toContainText('Your credits were kept');
+      await expect(page.locator('#undoclear')).not.toBeVisible();
+    });
+    await scenario('small phone tray and everyday filters stay compact',async page=>{
+      await page.setViewportSize({width:320,height:640});
+      await page.locator(`[data-pick="${current.u}"]`).click();
+      assert.ok((await page.locator('#tray').boundingBox()).height<70);
+      await page.click('#filters>summary');
+      await expect(page.locator('#sourcefilter')).toBeVisible();
+      await expect(page.locator('#morefilters')).not.toHaveAttribute('open','');
+      await page.selectOption('#sourcefilter','test');
+      await page.click('#showresults');
+      await expect(page.locator('#filters')).not.toHaveAttribute('open','');
+      await page.reload();await page.click('#filters>summary');
+      await expect(page.locator('#sourcefilter')).toHaveValue('test');
+      assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+      await page.click('#showresults');await page.click('#creditactions>summary');
+      await expect(page.locator('#projectexport')).toBeVisible();
+      await expect(page.locator('#trayclear')).toBeVisible();
+      await page.click('#creditactions>summary');
+      await page.screenshot({path:path.join(ROOT,'output/playwright/simple-320.png')});
+    },{filtersOpen:false});
+    await scenario('common plurals match without dropping filters or source-only mode',async page=>{
+      await page.fill('#q','barrels');await expect(page.locator('#results .hit')).toHaveCount(1);
+      await page.click('[data-use="nocredit"]');await expect(page.locator('#results .hit')).toHaveCount(0);
+      await expect(page.locator('#results')).toContainText('Dropping the licence filter');
+      await page.click('[data-use="any"]');await page.uncheck('#includeinferred');
+      await expect(page.locator('#results .hit')).toHaveCount(1);
+      await page.fill('#q','nonexistent words');await expect(page.locator('#results')).toContainText('Try fewer words');
+    });
     await scenario('legacy OGA-BY records disclose the unknown version in details and credits',async page=>{
       await page.locator('.hit').first().press('Enter');
       await expect(page.locator('#dbody')).toContainText('Not verified in this legacy record');
@@ -90,7 +145,7 @@ async function scenario(name,body,{data=fixture,saved,filtersOpen=true}={}){
       await expect(page.locator('#creditnotesstatus')).toContainText('browser storage failed');
       await expect(page.locator('#creditnotesstatus')).not.toHaveText('Notes saved');
       await page.click('#dlgclose');
-      const downloaded=page.waitForEvent('download');await page.click('#projectexport');
+      const downloaded=page.waitForEvent('download');await page.locator('#creditactions>summary').click();await page.click('#projectexport');
       const file=await downloaded;
       assert.equal(M.readProject(fs.readFileSync(await file.path(),'utf8'))[0].credit_notice,'Keep this notice');
       assert.equal(await page.evaluate(()=>localStorage.getItem('magpie.basket.v1')),null);
@@ -194,7 +249,7 @@ async function scenario(name,body,{data=fixture,saved,filtersOpen=true}={}){
       const record=await page.evaluate(()=>JSON.parse(localStorage.getItem('magpie.basket.v1'))[0]);
       assert.equal(record.a,'Ada'); assert.equal(record.history[0].a,'');
       const download=page.waitForEvent('download');
-      await page.click('#dlgclose'); await page.click('#projectexport');
+      await page.click('#dlgclose'); await page.locator('#creditactions>summary').click();await page.click('#projectexport');
       const file=await download;
       const restored=M.readProject(fs.readFileSync(await file.path(),'utf8'));
       assert.equal(restored[0].history[0].a,'');
@@ -262,7 +317,7 @@ async function scenario(name,body,{data=fixture,saved,filtersOpen=true}={}){
       await page.setViewportSize({width:390,height:844});
       await expect(page.locator('#results .hit')).toHaveCount(3);
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
-      await page.locator('#sources').scrollIntoViewIfNeeded();
+      await page.locator('#catalogueinfo>summary').click();await page.locator('#sources').scrollIntoViewIfNeeded();
       fs.mkdirSync(path.join(ROOT,'output/playwright'),{recursive:true});
       await page.screenshot({path:path.join(ROOT,'output/playwright/mobile.png')});
     });
@@ -275,10 +330,11 @@ async function scenario(name,body,{data=fixture,saved,filtersOpen=true}={}){
       fs.mkdirSync(path.join(ROOT,'output/playwright'),{recursive:true});
       await page.screenshot({path:path.join(ROOT,'output/playwright/catalogue.png')});
       const times=await page.evaluate(()=>{
-        const values=[]; for(const q of ['', 'a','dungeon','stone wall']){
+        const values=[]; for(const q of ['', 'a','dungeon','stone wall','road barrier','road barriers']){
           state.q=q; const start=performance.now();run();values.push({query:q,ms:Math.round(performance.now()-start),results:view.length});
         }return values;
       });
+      assert.equal(times.find(t=>t.query==='road barriers').results,times.find(t=>t.query==='road barrier').results);
       console.log('Browser search including rendering: '+JSON.stringify(times));
     },{data:JSON.parse(fs.readFileSync(path.join(SITE,'data.json'),'utf8'))});
   }finally{await browser.close();}

@@ -106,13 +106,31 @@
     if(a.l!=="cc0" && !a.modifications) issues.push("changes not recorded");
     return issues;
   }
+  // Keep substring search; expand only common plural endings to whole words.
+  function singular(word){
+    if(/[^a-z]/.test(word) || word.length<4) return word;
+    if(/ies$/.test(word) && word.length>4) return word.slice(0,-3)+"y";
+    if(/(?:ches|shes|xes|sses|zzes)$/.test(word)) return word.slice(0,-2);
+    if(/s$/.test(word) && !/(?:ss|us|is)$/.test(word)) return word.slice(0,-1);
+    return word;
+  }
+  function matchesQuery(text,terms){
+    let words;
+    return terms.every(term=>{
+      if(text.includes(term)) return true;
+      const single=singular(term);
+      if(single===term) return false;
+      words ||= new Set(text.match(/[a-z]+/g)||[]);
+      return words.has(single);
+    });
+  }
   function prepare(a){
     return {...a,_sourceHay:(a.t+" "+(a.tg||"")+" "+(a.a||"")+" "+a.s).toLowerCase(),
       _sourceTags:new Set((a.tg||"").split(",").filter(Boolean)),
       _h:(a.t+" "+(a.tg||"")+" "+(a.tga||"")+" "+(a.a||"")+" "+a.s).toLowerCase(),
       _t:new Set([...(a.tg||"").split(","),...(a.tga||"").split(",")].filter(Boolean))};
   }
-  const api={asset,validateIndex,readProject,project,differences,accept,obligations,prepare,previewAllowed,creditIssues,saved};
+  const api={matchesQuery,asset,validateIndex,readProject,project,differences,accept,obligations,prepare,previewAllowed,creditIssues,saved};
   if(typeof module!=="undefined") module.exports=api;
   else root.Magpie=api;
 })(globalThis);
