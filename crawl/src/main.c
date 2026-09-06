@@ -109,7 +109,7 @@ static void usage(void)
 "  magpie enrich [source]        fill in author/tags a listing could not carry\n"
 "  magpie reclassify             re-run the classifier over the index, no network\n"
 "  magpie budget                 requests used today, and recent days\n"
-"  magpie export [--out DIR]     write validated browser JSON (atomic replacement)\n"
+"  magpie export [--out FILE]     write validated browser JSON (atomic replacement)\n"
 "\n"
 "crawl:\n"
 "  --offline        cached responses only, no network\n"

@@ -14,6 +14,7 @@
 #  include <windows.h>
 #else
 #  include <sys/time.h>
+#  include <sys/statvfs.h>
 #  include <unistd.h>
 #endif
 
@@ -384,4 +385,23 @@ int atomic_replace(const char *from, const char *to)
 #else
     return rename(from,to);
 #endif
+}
+
+/* Query the containing directory, including when the database is a relative path. */
+long long disk_free_bytes(const char *file_path)
+{
+    char *dir=xstrdup(file_path), *last=NULL, *p;
+    long long result=-1;
+    if(!dir) return -1;
+    for(p=dir;*p;p++) if(*p=='/' || *p=='\\') last=p;
+    if(last) last[1]=0;
+    else { free(dir); dir=xstrdup("."); if(!dir) return -1; }
+#ifdef _WIN32
+    { ULARGE_INTEGER available;
+      if(GetDiskFreeSpaceExA(dir,&available,NULL,NULL)) result=(long long)available.QuadPart; }
+#else
+    { struct statvfs space;
+      if(!statvfs(dir,&space)) result=(long long)space.f_bavail*space.f_frsize; }
+#endif
+    free(dir); return result;
 }

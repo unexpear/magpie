@@ -25,6 +25,8 @@ import sys
 import sqlite3
 from contextlib import closing
 import time
+import shutil
+import tempfile
 from pathlib import Path
 
 HERE   = os.path.dirname(os.path.abspath(__file__))
@@ -323,14 +325,65 @@ def show_status():
     return 0
 
 
+def populate():
+    """One bounded API/repository refresh; no downloads, scheduling or git push."""
+    s, error = stats()
+    if error:
+        log("population stopped: " + error)
+        return 1
+    st = {"day_used": s["day_used"], "week_used": s["week_used"]}
+    reasons = [r for r in blockers(st) if not r.startswith("quiet hours")]
+    if shutil.disk_usage(CRAWL).free < 2*1024**3:
+        reasons.append("less than 2 GiB free")
+    if reasons:
+        log("population stopped: " + " / ".join(reasons))
+        return 1
+    out, error = magpie(["crawl", "polyhaven", "ambientcg", "gameicons",
+                         "--max-requests", str(BATCH), "--daily-cap", str(DAILY_BUDGET)], timeout=15*60)
+    if out:
+        print(out, flush=True)
+    # Keep valid partial progress, but never replace the website with an oversized export.
+    build = Path(CRAWL, "build")
+    build.mkdir(exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="population-", dir=build) as directory:
+        candidate = Path(directory, "data.json")
+        export_out, export_error = magpie(["export", "--out", str(candidate)])
+        if export_error:
+            log("population export stopped: " + export_error + ": " + (export_out or ""))
+            return 1
+        assets = validate_population(candidate)
+        os.replace(candidate, Path(CRAWL, "web", "data.json"))
+    log(f"catalogue populated: {assets} assets; no asset files downloaded")
+    if error:
+        log("some sources incomplete: " + error)
+    return 1 if error else 0
+
+
+def validate_population(candidate):
+    # Reserve room for the HTML and scripts under the 25 MiB publication ceiling.
+    if candidate.stat().st_size > 24*1024**2:
+        raise ValueError("population stopped: metadata exceeds 24 MiB")
+    data = json.loads(candidate.read_text(encoding="utf-8"))
+    if len(data["assets"]) > 50000:
+        raise ValueError("population stopped: more than 50,000 assets")
+    return len(data["assets"])
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--status", action="store_true", help="print state, change nothing")
-    ap.add_argument("--dry-run", action="store_true", help="decide but run nothing")
+    mode = ap.add_mutually_exclusive_group()
+    mode.add_argument("--status", action="store_true", help="print state, change nothing")
+    mode.add_argument("--dry-run", action="store_true", help="decide but run nothing")
+    mode.add_argument("--populate", action="store_true", help="one API/repository refresh, 120 requests / 15 minutes maximum")
     a = ap.parse_args()
 
     if a.status:
         return show_status()
+    if a.populate:
+        try:
+            return populate()
+        except (OSError, ValueError) as exc:
+            log(str(exc));return 1
     return tick(dry_run=a.dry_run)
 
 

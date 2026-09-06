@@ -33,7 +33,10 @@ async function scenario(name,body,{data=fixture,saved,filtersOpen=true}={}){
   }finally{await context.close();}
 }
 (async()=>{
-  const {publication}=require('../publish.cjs');
+  const {publication,checkSize}=require('../publish.cjs');
+  assert.throws(()=>checkSize(fixture,25*1024*1024+1),/Publication stopped/);
+  assert.throws(()=>checkSize({assets:{length:50001}},1),/Publication stopped/);
+  checkSize(fixture,25*1024*1024);
   const blocked={...current,s:'opengameart',th:'https://opengameart.org/preview.png'};
   assert.equal(M.previewAllowed(blocked),false);
   assert.equal(M.previewAllowed({...blocked,s:'kenney'}),false);

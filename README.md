@@ -6,7 +6,7 @@
 
 Magpie indexes metadata from **OpenGameArt, game-icons.net, ambientCG, Poly Haven and Kenney**. Search runs in your browser against a static catalogue. Asset downloads stay on the original sites; previews appear only for sources covered by the publication policy.
 
-The current bundled catalogue contains **19,359 assets**. Source observations date from August 2026; the site shows observation and crawl dates separately from export generation time.
+The current bundled catalogue contains **19,441 assets**. API/repository sources were refreshed on September 6, 2026; other source observations date from August 2026; the site shows observation and crawl dates separately from export generation time.
 
 ## What you can do
 

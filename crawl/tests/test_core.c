@@ -52,6 +52,8 @@ int main(int argc, char **argv)
     assert(licence_parse("CC-BY-SA 4.0")==LIC_CC_BY_SA);
     assert(url_resolve(base,"file:///tmp/file")==NULL);
     assert(parse_datetime("2026-08-08T20:00:00")-parse_datetime("2026-08-08 00:00:00")==72000);
+    assert(disk_free_bytes("missing-dir-does-not-exist/db.sqlite")==-1);
+    assert(disk_free_bytes("db.sqlite")>0);
     assert(argc==2); s=store_open(argv[1]); assert(s);
     assert(!store_request_reserve(s,"run","a",0,1,1,500,3000,&wait));
     assert(store_request_reserve(s,"run","b",0,1,1,500,3000,&wait)==1);
@@ -59,5 +61,17 @@ int main(int argc, char **argv)
     assert(store_request_reserve(s,"other","c",0,500,500,500,3000,&wait)==-1);
     store_close(s); s=store_open(argv[1]); assert(s);
     assert(store_budget_used_today(s)==1); assert(store_run_used(s,"run")==1);
+    {
+        size_t size=20*1024*1024;
+        char *body=malloc(size); sbuf cached; assert(body); memset(body,'x',size);
+        assert(!store_cache_put(s,"https://a/first",NULL,NULL,body,size));
+        assert(!store_cache_put(s,"https://a/second",NULL,NULL,body,size));
+        sbuf_init(&cached);
+        assert(store_cache_get(s,"https://a/first",NULL,0,NULL,0,&cached)!=0);
+        assert(!store_cache_get(s,"https://a/second",NULL,0,NULL,0,&cached));
+        assert(cached.len==size);sbuf_free(&cached);
+        assert(store_cache_put(s,"https://a/large",NULL,NULL,body,33554433)!=0);
+        free(body);
+    }
     store_close(s); puts("core policy, URL, date and durable accounting checks passed"); return 0;
 }

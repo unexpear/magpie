@@ -60,6 +60,8 @@ int url_origin(const char *url, char *out, size_t n);
 char *url_resolve(const char *base, const char *ref);
 int shell_arg(sbuf *b, const char *arg);
 
+long long disk_free_bytes(const char *file_path);
+
 int atomic_replace(const char *from, const char *to);
 
 #endif

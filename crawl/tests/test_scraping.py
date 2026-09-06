@@ -115,6 +115,19 @@ class NetworkTests(unittest.TestCase):
                      commercial_ok,http_status,last_checked) VALUES(?,?,?,?,?,?,?,?,?)""",
                  (source + ":" + slug, source, "Fixture", self.base + path, "cc_by", 1, 1, status, checked))
 
+    def test_asset_capacity_keeps_existing_records_and_blocks_new_ones(self):
+        with contextlib.closing(sqlite3.connect(self.db)) as db, db:
+            db.executemany("INSERT INTO assets(id,source,title,source_url) VALUES(?,'test','Asset','https://source.test/a')",((str(i),) for i in range(50000)))
+            with self.assertRaisesRegex(sqlite3.IntegrityError,"capacity"):
+                db.execute("INSERT INTO assets(id,source,title,source_url) VALUES('extra','test','Extra','https://source.test/b')")
+            db.execute("INSERT INTO assets(id,source,title,source_url) VALUES('0','test','Updated','https://source.test/a') ON CONFLICT(id) DO UPDATE SET title=excluded.title")
+            self.assertEqual(db.execute("SELECT title FROM assets WHERE id='0'").fetchone()[0],'Updated')
+            self.assertEqual(db.execute("SELECT COUNT(*) FROM assets").fetchone()[0],50000)
+        result=self.fetch()
+        self.assertNotEqual(result.returncode,0)
+        self.assertIn('catalogue capacity',result.stderr)
+        self.assertEqual(self.server.requests,[])
+
     def test_polyhaven_website_is_blocked_before_network_or_budget(self):
         for host in ('polyhaven.com', 'www.polyhaven.com'):
             result = self.cmd('fetch', '--url', 'https://' + host + '/a/fixture')
@@ -469,3 +482,54 @@ class AdapterTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PopulationTests(unittest.TestCase):
+    def test_oversized_population_is_rejected(self):
+        with tempfile.TemporaryDirectory() as d:
+            p=Path(d,"data.json")
+            p.write_text(json.dumps({"assets": [None]*50001}))
+            with self.assertRaisesRegex(ValueError,"50,000"):
+                runner.validate_population(p)
+            with p.open("wb") as f:
+                f.truncate(24*1024**2+1)
+            with self.assertRaisesRegex(ValueError,"24 MiB"):
+                runner.validate_population(p)
+
+    def test_population_low_disk_prevents_any_command(self):
+        with patch.object(runner,"stats",return_value=({"day_used":0,"week_used":0},None)), \
+             patch.object(runner,"blockers",return_value=[]), \
+             patch.object(runner.shutil,"disk_usage",return_value=type("Space",(),{"free":1})()), \
+             patch.object(runner,"magpie") as command:
+            self.assertEqual(runner.populate(),1)
+            command.assert_not_called()
+
+    def test_population_exports_to_a_file_and_preserves_partial_progress(self):
+        with tempfile.TemporaryDirectory() as d:
+            Path(d,"web").mkdir()
+            target=Path(d,"web/data.json")
+            target.write_text("previous")
+            def command(args, **kwargs):
+                if args[0]=="crawl":
+                    self.assertEqual(args[1:4],["polyhaven","ambientcg","gameicons"])
+                    self.assertEqual(kwargs["timeout"],900)
+                    return "partial source result", "exit 1"
+                output=Path(args[2])
+                self.assertEqual(output.name,"data.json")
+                output.write_text(json.dumps({"assets":[]}))
+                return "exported", None
+            with patch.object(runner,"CRAWL",d), \
+                 patch.object(runner,"stats",return_value=({"day_used":0,"week_used":0},None)), \
+                 patch.object(runner,"blockers",return_value=[]), \
+                 patch.object(runner.shutil,"disk_usage",return_value=type("Space",(),{"free":10*1024**3})()), \
+                 patch.object(runner,"magpie",side_effect=command):
+                self.assertEqual(runner.populate(),1)
+                self.assertEqual(json.loads(target.read_text()),{"assets":[]})
+
+    def test_population_cannot_override_dry_run(self):
+        with patch.object(sys,"argv",["runner.py","--dry-run","--populate"]), \
+             patch.object(runner,"populate") as populate, contextlib.redirect_stderr(io.StringIO()):
+            with self.assertRaises(SystemExit) as error:
+                runner.main()
+            self.assertEqual(error.exception.code,2)
+            populate.assert_not_called()

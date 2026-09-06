@@ -43,6 +43,9 @@ static const char *SCHEMA =
     "  updated_at INTEGER,"
     "  last_seen INTEGER"
     ");"
+    "CREATE TRIGGER IF NOT EXISTS assets_capacity BEFORE INSERT ON assets "
+    "WHEN NOT EXISTS(SELECT 1 FROM assets WHERE id=NEW.id) AND (SELECT COUNT(*) FROM assets)>=50000 "
+    "BEGIN SELECT RAISE(ABORT,'catalogue capacity reached (50000 assets)'); END;"
     "CREATE INDEX IF NOT EXISTS idx_source ON assets(source);"
     "CREATE INDEX IF NOT EXISTS idx_comm   ON assets(commercial_ok);"
     "CREATE INDEX IF NOT EXISTS idx_type   ON assets(asset_type);"
@@ -134,6 +137,17 @@ store *store_open(const char *path)
     s->path = xstrdup(path);
     if(!s->path) { store_close(s); return NULL; }
     sqlite3_busy_timeout(s->db, 5000);
+    /* Per-connection SQLite ceiling: 128 MiB, independent of database page size.
+       Journal/WAL and temporary files are additional; the disk reserve covers them. */
+    {
+        sqlite3_stmt *q=NULL; int page_size=0; char sql[80];
+        if(sqlite3_prepare_v2(s->db,"PRAGMA page_size",-1,&q,NULL)==SQLITE_OK && sqlite3_step(q)==SQLITE_ROW)
+            page_size=sqlite3_column_int(q,0);
+        sqlite3_finalize(q);
+        if(page_size<=0) {store_close(s);return NULL;}
+        snprintf(sql,sizeof sql,"PRAGMA max_page_count=%d",134217728/page_size);
+        if(sqlite3_exec(s->db,sql,NULL,NULL,NULL)!=SQLITE_OK) {store_close(s);return NULL;}
+    }
     if (sqlite3_exec(s->db, SCHEMA, NULL, NULL, &err) != SQLITE_OK) {
         fprintf(stderr, "schema: %s\n", err ? err : "?");
         sqlite3_free(err);
@@ -998,6 +1012,21 @@ int store_cache_get(store *s, const char *url,
 int store_cache_put(store *s, const char *url, const char *etag,
                     const char *lastmod, const char *body, size_t len)
 {
+    sqlite3_stmt *room=NULL;
+    long long used;
+    if(len>33554432) {fprintf(stderr,"cache response exceeds 32 MiB limit\n");return -1;}
+    if(exec1(s,"SAVEPOINT cache_room")) return -1;
+    for(;;) {
+        if(sqlite3_prepare_v2(s->db,"SELECT COALESCE(SUM(length(body)),0) FROM http_cache WHERE url<>?1",-1,&room,NULL)!=SQLITE_OK) goto cache_fail;
+        sqlite3_bind_text(room,1,url,-1,SQLITE_TRANSIENT);
+        if(sqlite3_step(room)!=SQLITE_ROW) {sqlite3_finalize(room);goto cache_fail;}
+        used=sqlite3_column_int64(room,0);sqlite3_finalize(room);room=NULL;
+        if(used+(long long)len<=33554432) break;
+        if(sqlite3_prepare_v2(s->db,"DELETE FROM http_cache WHERE url=(SELECT url FROM http_cache WHERE url<>?1 ORDER BY fetched_at,url LIMIT 1)",-1,&room,NULL)!=SQLITE_OK) goto cache_fail;
+        sqlite3_bind_text(room,1,url,-1,SQLITE_TRANSIENT);
+        if(sqlite3_step(room)!=SQLITE_DONE) {sqlite3_finalize(room);goto cache_fail;}
+        sqlite3_finalize(room);room=NULL;
+    }
     sqlite3_reset(s->cache_put);
     sqlite3_clear_bindings(s->cache_put);
     sqlite3_bind_text(s->cache_put, 1, url, -1, SQLITE_STATIC);
@@ -1009,10 +1038,12 @@ int store_cache_put(store *s, const char *url, const char *etag,
     if (sqlite3_step(s->cache_put) != SQLITE_DONE) {
         fprintf(stderr, "cache put: %s\n", sqlite3_errmsg(s->db));
         sqlite3_reset(s->cache_put);
-        return -1;
+        goto cache_fail;
     }
     sqlite3_reset(s->cache_put);
-    return 0;
+    return exec1(s,"RELEASE cache_room");
+cache_fail:
+    exec1(s,"ROLLBACK TO cache_room");exec1(s,"RELEASE cache_room");return -1;
 }
 
 
@@ -1044,6 +1075,12 @@ int store_request_reserve(store *s, const char *run, const char *host,
     time_t t=time(NULL); struct tm tm=*localtime(&t);
     *wait_ms=0;
     if(!sqlite3_get_autocommit(s->db)) { fprintf(stderr,"request inside asset transaction refused\n"); return -1; }
+    if(keyed_number(s,"SELECT COUNT(*) FROM assets WHERE ?1 IS NOT NULL","")>=50000) {
+        fprintf(stderr,"network stopped: catalogue capacity reached (50000 assets)\n"); return -1;
+    }
+    if(disk_free_bytes(s->path)<2147483648LL) {
+        fprintf(stderr,"network stopped: less than 2 GiB free or disk space unavailable\n"); return -1;
+    }
     if(exec1(s,"BEGIN IMMEDIATE")) return -1;
     store_budget_today_key(day);
     tm.tm_mday-=(tm.tm_wday+6)%7; tm.tm_hour=12; mktime(&tm); strftime(monday,sizeof monday,"%Y-%m-%d",&tm);
