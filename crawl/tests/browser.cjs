@@ -12,7 +12,7 @@ const sa={...current,id:'test:stone',t:'Stone wall',u:'https://source.test/wall'
 const cc0={...current,id:'test:lamp',t:'Lamp',u:'https://source.test/lamp',l:'cc0',lu:'https://creativecommons.org/publicdomain/zero/1.0/',n:1};
 const fixture={generated:1700000000,assets:[current,sa,cc0],sources:[{name:'test',site:'https://source.test',assets:3,commercial:3,dead:0,last_seen:1600000000,last_success:0,crawl_state:3}],stats:{total:3,commercial:3,nocredit:1,unclassifiable:0,dead:0,unchecked:3}};
 let browser;
-async function scenario(name,body,{data=fixture,saved}={}){
+async function scenario(name,body,{data=fixture,saved,filtersOpen=true}={}){
   const context=await browser.newContext({acceptDownloads:true});
   const errors=[];
   try{
@@ -23,6 +23,7 @@ async function scenario(name,body,{data=fixture,saved}={}){
       return route.fulfill({status:200,contentType:file==='index.html'?'text/html':file?'application/javascript':'application/json',body:file?fs.readFileSync(path.join(SITE,file)):JSON.stringify(data)});
     });
     if(saved) await context.addInitScript(value=>localStorage.setItem('magpie.basket.v1',JSON.stringify(value)),saved);
+    if(filtersOpen) await context.addInitScript(()=>document.addEventListener('DOMContentLoaded',()=>{document.querySelector('#filters').open=true;}));
     const page=await context.newPage();
     page.on('pageerror',error=>errors.push(error.message));
     await page.goto('http://magpie.test/');
@@ -51,6 +52,26 @@ async function scenario(name,body,{data=fixture,saved}={}){
   console.log('PASS publication exclusions, preview policy and review history');
   browser=await chromium.launch({channel:process.env.MAGPIE_BROWSER_CHANNEL||(process.platform==='win32'?'msedge':undefined),headless:true});
   try{
+    await scenario('collapsed filters leave results visible on desktop and mobile',async page=>{
+      for(const viewport of [{width:1280,height:800},{width:390,height:844}]){
+        await page.setViewportSize(viewport);
+        await expect(page.locator('#results .hit')).toHaveCount(3);
+        await expect(page.locator('#filters')).not.toHaveAttribute('open','');
+        const box=await page.locator('#results').boundingBox();
+        assert.ok(box.y<220,`Grid starts at ${box.y}`);
+        assert.ok(box.width>viewport.width*.9,`Grid width ${box.width}`);
+        assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+        await page.locator('#filters>summary').press('Space');
+        await page.click('[data-use="nocredit"]');
+        await expect(page.locator('#results .hit')).toHaveCount(1);
+        await page.locator('#filters>summary').click();
+        await expect(page.locator('#chips')).toContainText('reported CC0');
+        await page.locator('[data-chip="use"]').click();
+        await expect(page.locator('#results .hit')).toHaveCount(3);
+        fs.mkdirSync(path.join(ROOT,'output/playwright'),{recursive:true});
+        await page.screenshot({path:path.join(ROOT,`output/playwright/compact-${viewport.width}.png`)});
+      }
+    },{filtersOpen:false});
     await scenario('legacy OGA-BY records disclose the unknown version in details and credits',async page=>{
       await page.locator('.hit').first().press('Enter');
       await expect(page.locator('#dbody')).toContainText('Not verified in this legacy record');
