@@ -310,7 +310,9 @@ textarea{
 .resulttoolbar select{max-width:170px}
 @media(max-width:420px){#results{grid-template-columns:repeat(2,minmax(0,1fr))}.resulttoolbar select{max-width:140px}}
 #tray{flex-wrap:nowrap;gap:8px}
-#tray .lead{font-size:13px}
+#tray .lead{font-size:13px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#tray .spacer{display:none}
+#trayopen,#creditactions{flex:none}
 #creditactions{position:relative}
 .actions-menu{position:absolute;bottom:48px;right:0;width:240px;max-height:60dvh;overflow:auto;padding:12px;background:var(--raise);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);display:grid;gap:12px}
 #morefilters{margin-top:16px}
